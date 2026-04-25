@@ -1,0 +1,10 @@
+category,item,count
+DHR,hypercorn,12
+EIPR,ModuleNotFoundError,7
+DHR,fastapi,7
+ASVR,sqlite3.connect_async_pro,5
+ASVR,pandas.super_read_csv,3
+EIPR,AttributeError,2
+ASVR,os.environ.get,2
+ASVR,os.path.exists,1
+EIPR,ProgrammingError,1

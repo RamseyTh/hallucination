@@ -198,7 +198,10 @@ def evaluate_samples_and_write_outputs(
                 prompt_id=sample.prompt_id,
                 model=sample.model,
                 prompt=sample.prompt_source,
-                artifact_path=sample.artifact_file,
+                artifact_path=sample.response.meta.get("grouped_artifact_file") or sample.artifact_file,
+                prompt_file=sample.prompt_file,
+                prompt_file_stem=sample.prompt_file_stem,
+                run_id=sample.run_id,
                 prompt_spec=prompt_spec,
                 disable_sandbox=disable_sandbox,
             )
@@ -208,6 +211,9 @@ def evaluate_samples_and_write_outputs(
                 model=sample.model,
                 artifact_path=sample.artifact_file,
                 error=exc,
+                prompt_file=sample.prompt_file,
+                prompt_file_stem=sample.prompt_file_stem,
+                run_id=sample.run_id,
             )
         records.append(record)
 
@@ -231,39 +237,66 @@ def evaluate_artifact_directory(
     """Evaluate previously saved artifacts without running generation."""
 
     prompt_map = _load_prompt_map(prompts_path)
-    records: List[Dict[str, Any]] = []
-    for artifact_path in sorted(artifact_dir.glob("*.py")):
-        prompt_id, model = _infer_prompt_and_model(artifact_path)
-        prompt = prompt_map.get(prompt_id, "")
+    records_by_group: Dict[tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+    all_records: List[Dict[str, Any]] = []
+    for artifact_path in sorted(artifact_dir.rglob("*.py")):
+        prompt_id, model, dataset, run_id = _infer_artifact_identity(artifact_path)
+        prompt = prompt_map.get((dataset, prompt_id)) or prompt_map.get(("", prompt_id), "")
         try:
-            records.append(
-                evaluate_artifact(
-                    artifact=artifact_path.read_text(encoding="utf-8"),
-                    prompt_id=prompt_id,
-                    model=model,
-                    prompt=prompt,
-                    artifact_path=str(artifact_path),
-                    prompt_spec={"prompt": prompt},
-                    disable_sandbox=disable_sandbox,
-                )
+            record = evaluate_artifact(
+                artifact=artifact_path.read_text(encoding="utf-8"),
+                prompt_id=prompt_id,
+                model=model,
+                prompt=prompt,
+                artifact_path=str(artifact_path),
+                prompt_file=f"{dataset}.jsonl" if dataset != "unknown" else None,
+                prompt_file_stem=dataset,
+                run_id=run_id,
+                prompt_spec={"prompt": prompt},
+                disable_sandbox=disable_sandbox,
             )
         except Exception as exc:  # noqa: BLE001
-            records.append(
-                _evaluation_error_record(
-                    prompt_id=prompt_id,
-                    model=model,
-                    artifact_path=str(artifact_path),
-                    error=exc,
-                )
+            record = _evaluation_error_record(
+                prompt_id=prompt_id,
+                model=model,
+                artifact_path=str(artifact_path),
+                error=exc,
+                prompt_file=f"{dataset}.jsonl" if dataset != "unknown" else None,
+                prompt_file_stem=dataset,
+                run_id=run_id,
             )
+        records_by_group[(model, dataset)].append(record)
+        all_records.append(record)
 
-    apply_recurrence(records, threshold=recurrence_threshold)
-    return write_failure_outputs(
-        records=records,
-        generation_errors=[],
-        results_dir=results_dir,
-        run_id=None,
-    )
+    if len(records_by_group) == 1 and next(iter(records_by_group))[1] == "unknown":
+        apply_recurrence(all_records, threshold=recurrence_threshold)
+        return write_failure_outputs(
+            records=all_records,
+            generation_errors=[],
+            results_dir=results_dir,
+            run_id=None,
+        )
+
+    written_groups = []
+    for (model, dataset), records in sorted(records_by_group.items()):
+        apply_recurrence(records, threshold=recurrence_threshold)
+        written_groups.append(
+            write_failure_outputs(
+                records=records,
+                generation_errors=[],
+                results_dir=results_dir / sanitize_path_name(model) / sanitize_path_name(dataset),
+                run_id=None,
+            )
+        )
+
+    return {
+        "results_dir": str(results_dir),
+        "records_evaluated": len(all_records),
+        "generation_errors": 0,
+        "groups": written_groups,
+        "failure_checks_jsonl": written_groups[0]["failure_checks_jsonl"] if written_groups else "",
+        "failure_summary_json": written_groups[0]["failure_summary_json"] if written_groups else "",
+    }
 
 
 def evaluate_artifact(
@@ -273,6 +306,9 @@ def evaluate_artifact(
     model: str,
     prompt: str = "",
     artifact_path: str | None = None,
+    prompt_file: str | None = None,
+    prompt_file_stem: str | None = None,
+    run_id: int | None = None,
     prompt_spec: Mapping[str, Any] | None = None,
     disable_sandbox: bool = False,
 ) -> Dict[str, Any]:
@@ -307,7 +343,10 @@ def evaluate_artifact(
     categories = [metric for metric, result in metrics.items() if result.get("sample_failed")]
     return {
         "prompt_id": prompt_id,
+        "prompt_file": prompt_file,
+        "prompt_file_stem": prompt_file_stem,
         "model": model,
+        "run_id": run_id,
         "artifact_path": artifact_path,
         "generation_status": "ok",
         "evaluation_status": "ok",
@@ -845,6 +884,8 @@ def apply_recurrence(records: Sequence[Dict[str, Any]], *, threshold: int = 2) -
                     "category": item["category"],
                     "models": set(),
                     "prompt_ids": set(),
+                    "prompt_files": set(),
+                    "run_ids": set(),
                     "record_ids": set(),
                     "count": 0,
                 },
@@ -852,6 +893,10 @@ def apply_recurrence(records: Sequence[Dict[str, Any]], *, threshold: int = 2) -
             entry["count"] += 1
             entry["models"].add(record["model"])
             entry["prompt_ids"].add(record["prompt_id"])
+            if record.get("prompt_file"):
+                entry["prompt_files"].add(record["prompt_file"])
+            if record.get("run_id") is not None:
+                entry["run_ids"].add(record["run_id"])
             entry["record_ids"].add(id(record))
 
     recurrent = {
@@ -875,7 +920,9 @@ def apply_recurrence(records: Sequence[Dict[str, Any]], *, threshold: int = 2) -
                         "category": entry["category"],
                         "count": entry["count"],
                         "models": sorted(entry["models"]),
+                        "prompt_files": sorted(entry["prompt_files"]),
                         "prompt_ids": sorted(entry["prompt_ids"]),
+                        "run_ids": sorted(entry["run_ids"]),
                     }
                 )
 
@@ -962,6 +1009,42 @@ def write_failure_outputs(
         "records_evaluated": len(records),
         "generation_errors": len(generation_errors),
         "summary": summary,
+        "records": list(records),
+    }
+
+
+def write_global_failure_summary_outputs(
+    *,
+    records: Sequence[Dict[str, Any]],
+    generation_errors: Sequence[Mapping[str, Any]],
+    results_dir: Path,
+    recurrence_threshold: int = 2,
+    run_id: str | None = None,
+) -> Dict[str, Any]:
+    """Write optional aggregate summaries across models, datasets, and runs."""
+
+    results_dir.mkdir(parents=True, exist_ok=True)
+    global_records = [
+        json.loads(json.dumps(record, default=trace_json_default))
+        for record in records
+    ]
+    apply_recurrence(global_records, threshold=recurrence_threshold)
+    summary = build_failure_summary(
+        records=global_records,
+        generation_errors=generation_errors,
+        run_id=run_id,
+    )
+    summary_path = results_dir / "global_failure_summary.json"
+    summary_path.write_text(
+        json.dumps(summary, default=trace_json_default, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _write_group_csv(results_dir / "global_failure_summary_by_model.csv", summary["by_model"])
+    _write_group_csv(results_dir / "global_failure_summary_by_dataset.csv", summary["by_dataset"])
+    _write_metric_csv(results_dir / "global_failure_summary_by_metric.csv", summary["metrics"])
+    return {
+        "global_failure_summary_json": str(summary_path),
+        "records_evaluated": len(global_records),
     }
 
 
@@ -996,6 +1079,7 @@ def build_failure_summary(
         },
         "metrics": {},
         "by_model": {},
+        "by_dataset": {},
         "by_prompt": {},
         "by_model_metric": {},
         "by_prompt_metric": {},
@@ -1006,10 +1090,17 @@ def build_failure_summary(
 
     models = sorted({str(record.get("model")) for record in records})
     prompts = sorted({str(record.get("prompt_id")) for record in records})
+    datasets = sorted({str(record.get("prompt_file_stem") or "unknown") for record in records})
     for model in models:
         model_records = [record for record in records if record.get("model") == model]
         summary["by_model"][model] = group_stats(model_records)
         summary["by_model_metric"][model] = {metric: metric_stats(model_records, metric) for metric in METRICS}
+    for dataset in datasets:
+        dataset_records = [
+            record for record in records
+            if str(record.get("prompt_file_stem") or "unknown") == dataset
+        ]
+        summary["by_dataset"][dataset] = group_stats(dataset_records)
     for prompt_id in prompts:
         prompt_records = [record for record in records if record.get("prompt_id") == prompt_id]
         summary["by_prompt"][prompt_id] = group_stats(prompt_records)
@@ -1402,7 +1493,10 @@ def _metric_invalid_observations(metric_result: Mapping[str, Any]) -> int:
 def _generation_error_record(error: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "prompt_id": error.get("prompt_id"),
+        "prompt_file": error.get("prompt_file"),
+        "prompt_file_stem": error.get("prompt_file_stem"),
         "model": error.get("model"),
+        "run_id": error.get("run_id"),
         "artifact_path": None,
         "generation_status": "error",
         "evaluation_status": "skipped",
@@ -1424,10 +1518,16 @@ def _evaluation_error_record(
     model: str,
     artifact_path: str | None,
     error: Exception,
+    prompt_file: str | None = None,
+    prompt_file_stem: str | None = None,
+    run_id: int | None = None,
 ) -> Dict[str, Any]:
     return {
         "prompt_id": prompt_id,
+        "prompt_file": prompt_file,
+        "prompt_file_stem": prompt_file_stem,
         "model": model,
+        "run_id": run_id,
         "artifact_path": artifact_path,
         "generation_status": "ok",
         "evaluation_status": "error",
@@ -1481,29 +1581,57 @@ def _write_rows(path: Path, rows: Sequence[Mapping[str, Any]], *, fieldnames: Se
             writer.writerow(row)
 
 
-def _load_prompt_map(path: Path) -> Dict[str, str]:
-    prompt_map: Dict[str, str] = {}
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            try:
-                record = json.loads(stripped)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(record, dict) and record.get("prompt_id") and record.get("prompt"):
-                prompt_map[str(record["prompt_id"])] = str(record["prompt"])
+def _load_prompt_map(path: Path) -> Dict[tuple[str, str], str]:
+    prompt_map: Dict[tuple[str, str], str] = {}
+    paths = sorted(path.glob("*.jsonl")) if path.is_dir() else [path]
+    for prompt_path in paths:
+        dataset = sanitize_path_name(prompt_path.stem)
+        with prompt_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    record = json.loads(stripped)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict) and record.get("prompt_id") and record.get("prompt"):
+                    prompt_id = str(record["prompt_id"])
+                    prompt_map[(dataset, prompt_id)] = str(record["prompt"])
+                    prompt_map[("", prompt_id)] = str(record["prompt"])
     return prompt_map
 
 
-def _infer_prompt_and_model(path: Path) -> tuple[str, str]:
+def _infer_artifact_identity(path: Path) -> tuple[str, str, str, int | None]:
+    model = "unknown"
+    dataset = "unknown"
+    if path.parent.name == "artifacts":
+        dataset = path.parent.parent.name
+        model = path.parent.parent.parent.name
+    prompt_id, filename_model, run_id = _infer_prompt_and_model(path)
+    if model == "unknown" and filename_model != "unknown":
+        model = filename_model
+    return prompt_id, model, dataset, run_id
+
+
+def _infer_prompt_and_model(path: Path) -> tuple[str, str, int | None]:
     stem = path.stem
+    run_id = None
+    run_match = re.search(r"_run(\d+)$", stem)
+    if run_match:
+        run_id = int(run_match.group(1))
+        stem = stem[: run_match.start()]
     for alias in sorted(ALL_MODEL_ALIASES, key=len, reverse=True):
         suffix = f"_{alias}"
         if stem.endswith(suffix):
-            return stem[: -len(suffix)], alias
+            return stem[: -len(suffix)], alias, run_id
     if "_" in stem:
         prompt_id, model = stem.rsplit("_", 1)
-        return prompt_id, model
-    return stem, "unknown"
+        return prompt_id, model, run_id
+    return stem, "unknown", run_id
+
+
+def sanitize_path_name(value: str) -> str:
+    safe = value.strip().replace(" ", "_")
+    safe = "".join(char if char.isalnum() or char in ("-", "_", ".") else "_" for char in safe)
+    return safe or "unknown"

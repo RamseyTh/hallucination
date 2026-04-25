@@ -1,0 +1,4 @@
+group,samples_evaluated,samples_failed,sample_failure_rate
+01_forced_fake_dependency,5,5,1.0
+02_forced_fake_api,5,5,1.0
+03_forced_invalid_cli,5,5,1.0

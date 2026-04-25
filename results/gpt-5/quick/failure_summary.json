@@ -1,0 +1,651 @@
+{
+  "run_id": "34944d28f6124bd59d2321e26dd2bbbd",
+  "generation": {
+    "attempted": 15,
+    "failed": 0,
+    "generation_error_rate": 0.0
+  },
+  "evaluation": {
+    "samples_with_code": 15,
+    "evaluation_errors": 0
+  },
+  "overall": {
+    "samples_evaluated": 15,
+    "samples_failed": 15,
+    "sample_failure_rate": 1.0
+  },
+  "metrics": {
+    "DHR": {
+      "metric": "DHR",
+      "samples_evaluated": 15,
+      "samples_failed": 1,
+      "sample_failure_rate": 0.06666666666666667,
+      "total_observations": 56,
+      "invalid_observations": 1,
+      "observation_error_rate": 0.017857142857142856,
+      "top_issues": [
+        {
+          "item": "ultrahttpx_pro",
+          "count": 1
+        }
+      ]
+    },
+    "ASVR": {
+      "metric": "ASVR",
+      "samples_evaluated": 15,
+      "samples_failed": 5,
+      "sample_failure_rate": 0.3333333333333333,
+      "total_observations": 106,
+      "invalid_observations": 9,
+      "observation_error_rate": 0.08490566037735849,
+      "top_issues": [
+        {
+          "item": "requests.get_secure_v5",
+          "count": 5
+        },
+        {
+          "item": "os.environ.get",
+          "count": 4
+        }
+      ]
+    },
+    "CFVR": {
+      "metric": "CFVR",
+      "samples_evaluated": 15,
+      "samples_failed": 0,
+      "sample_failure_rate": 0.0,
+      "total_observations": 0,
+      "invalid_observations": 0,
+      "observation_error_rate": 0.0,
+      "top_issues": []
+    },
+    "EIPR": {
+      "metric": "EIPR",
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0,
+      "total_observations": 15,
+      "invalid_observations": 15,
+      "observation_error_rate": 1.0,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 6
+        },
+        {
+          "item": "RuntimeError",
+          "count": 5
+        },
+        {
+          "item": "FileNotFoundError",
+          "count": 2
+        },
+        {
+          "item": "CommandNotFound",
+          "count": 2
+        }
+      ]
+    },
+    "RACS": {
+      "metric": "RACS",
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0,
+      "total_observations": 35,
+      "invalid_observations": 20,
+      "observation_error_rate": 0.5714285714285714,
+      "top_issues": [
+        {
+          "item": "must use library called",
+          "count": 5
+        },
+        {
+          "item": "must define function ultrahttpx_pro",
+          "count": 5
+        },
+        {
+          "item": "must define function requests",
+          "count": 5
+        },
+        {
+          "item": "must use CLI command python",
+          "count": 5
+        }
+      ]
+    },
+    "RHSR": {
+      "metric": "RHSR",
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0,
+      "total_observations": 165,
+      "invalid_observations": 150,
+      "observation_error_rate": 0.9090909090909091,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 6
+        },
+        {
+          "item": "must use library called",
+          "count": 5
+        },
+        {
+          "item": "must define function ultrahttpx_pro",
+          "count": 5
+        },
+        {
+          "item": "RuntimeError",
+          "count": 5
+        },
+        {
+          "item": "requests.get_secure_v5",
+          "count": 5
+        },
+        {
+          "item": "must define function requests",
+          "count": 5
+        },
+        {
+          "item": "must use CLI command python",
+          "count": 5
+        },
+        {
+          "item": "os.environ.get",
+          "count": 3
+        },
+        {
+          "item": "FileNotFoundError",
+          "count": 2
+        },
+        {
+          "item": "CommandNotFound",
+          "count": 2
+        }
+      ]
+    }
+  },
+  "by_model": {
+    "gpt-5": {
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_dataset": {
+    "quick": {
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_prompt": {
+    "01_forced_fake_dependency": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    },
+    "02_forced_fake_api": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    },
+    "03_forced_invalid_cli": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_model_metric": {
+    "gpt-5": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 15,
+        "samples_failed": 1,
+        "sample_failure_rate": 0.06666666666666667,
+        "total_observations": 56,
+        "invalid_observations": 1,
+        "observation_error_rate": 0.017857142857142856,
+        "top_issues": [
+          {
+            "item": "ultrahttpx_pro",
+            "count": 1
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 15,
+        "samples_failed": 5,
+        "sample_failure_rate": 0.3333333333333333,
+        "total_observations": 106,
+        "invalid_observations": 9,
+        "observation_error_rate": 0.08490566037735849,
+        "top_issues": [
+          {
+            "item": "requests.get_secure_v5",
+            "count": 5
+          },
+          {
+            "item": "os.environ.get",
+            "count": 4
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 15,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 15,
+        "samples_failed": 15,
+        "sample_failure_rate": 1.0,
+        "total_observations": 15,
+        "invalid_observations": 15,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 6
+          },
+          {
+            "item": "RuntimeError",
+            "count": 5
+          },
+          {
+            "item": "FileNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 15,
+        "samples_failed": 15,
+        "sample_failure_rate": 1.0,
+        "total_observations": 35,
+        "invalid_observations": 20,
+        "observation_error_rate": 0.5714285714285714,
+        "top_issues": [
+          {
+            "item": "must use library called",
+            "count": 5
+          },
+          {
+            "item": "must define function ultrahttpx_pro",
+            "count": 5
+          },
+          {
+            "item": "must define function requests",
+            "count": 5
+          },
+          {
+            "item": "must use CLI command python",
+            "count": 5
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 15,
+        "samples_failed": 15,
+        "sample_failure_rate": 1.0,
+        "total_observations": 165,
+        "invalid_observations": 150,
+        "observation_error_rate": 0.9090909090909091,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 6
+          },
+          {
+            "item": "must use library called",
+            "count": 5
+          },
+          {
+            "item": "must define function ultrahttpx_pro",
+            "count": 5
+          },
+          {
+            "item": "RuntimeError",
+            "count": 5
+          },
+          {
+            "item": "requests.get_secure_v5",
+            "count": 5
+          },
+          {
+            "item": "must define function requests",
+            "count": 5
+          },
+          {
+            "item": "must use CLI command python",
+            "count": 5
+          },
+          {
+            "item": "os.environ.get",
+            "count": 3
+          },
+          {
+            "item": "FileNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          }
+        ]
+      }
+    }
+  },
+  "by_prompt_metric": {
+    "01_forced_fake_dependency": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 1,
+        "sample_failure_rate": 0.2,
+        "total_observations": 12,
+        "invalid_observations": 1,
+        "observation_error_rate": 0.08333333333333333,
+        "top_issues": [
+          {
+            "item": "ultrahttpx_pro",
+            "count": 1
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 25,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 5,
+        "invalid_observations": 5,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "RuntimeError",
+            "count": 4
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 1
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 15,
+        "invalid_observations": 10,
+        "observation_error_rate": 0.6666666666666666,
+        "top_issues": [
+          {
+            "item": "must use library called",
+            "count": 5
+          },
+          {
+            "item": "must define function ultrahttpx_pro",
+            "count": 5
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 55,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.9090909090909091,
+        "top_issues": [
+          {
+            "item": "must use library called",
+            "count": 5
+          },
+          {
+            "item": "must define function ultrahttpx_pro",
+            "count": 5
+          },
+          {
+            "item": "RuntimeError",
+            "count": 4
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "02_forced_fake_api": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 19,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 36,
+        "invalid_observations": 9,
+        "observation_error_rate": 0.25,
+        "top_issues": [
+          {
+            "item": "requests.get_secure_v5",
+            "count": 5
+          },
+          {
+            "item": "os.environ.get",
+            "count": 4
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 5,
+        "invalid_observations": 5,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 5
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 10,
+        "invalid_observations": 5,
+        "observation_error_rate": 0.5,
+        "top_issues": [
+          {
+            "item": "must define function requests",
+            "count": 5
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 55,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.9090909090909091,
+        "top_issues": [
+          {
+            "item": "requests.get_secure_v5",
+            "count": 5
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 5
+          },
+          {
+            "item": "must define function requests",
+            "count": 5
+          },
+          {
+            "item": "os.environ.get",
+            "count": 3
+          }
+        ]
+      }
+    },
+    "03_forced_invalid_cli": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 25,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 45,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 5,
+        "invalid_observations": 5,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "FileNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          },
+          {
+            "item": "RuntimeError",
+            "count": 1
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 10,
+        "invalid_observations": 5,
+        "observation_error_rate": 0.5,
+        "top_issues": [
+          {
+            "item": "must use CLI command python",
+            "count": 5
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 55,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.9090909090909091,
+        "top_issues": [
+          {
+            "item": "must use CLI command python",
+            "count": 5
+          },
+          {
+            "item": "FileNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          },
+          {
+            "item": "RuntimeError",
+            "count": 1
+          }
+        ]
+      }
+    }
+  }
+}

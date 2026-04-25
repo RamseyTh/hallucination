@@ -19,6 +19,8 @@ class Prompt:
     language: Optional[str] = None
     tags: List[str] = field(default_factory=list)
     contract: Optional[Dict[str, Any]] = None
+    prompt_file: Optional[str] = None
+    prompt_file_stem: Optional[str] = None
 
     @property
     def prompt_text(self) -> str:
@@ -55,6 +57,9 @@ class CodeSample:
     prompt_contract: Optional[Dict[str, Any]] = None
     artifact_metadata: Dict[str, Any] = field(default_factory=dict)
     artifact_file: Optional[str] = None
+    prompt_file: Optional[str] = None
+    prompt_file_stem: Optional[str] = None
+    run_id: Optional[int] = None
     warnings: List[Dict[str, Any]] = field(default_factory=list)
     failure_report: Optional[Dict[str, Any]] = None
 
@@ -114,6 +119,7 @@ class PipelineConfig:
     output_dir: Path
     model: str
     samples_per_prompt: int = 1
+    runs_per_prompt: Optional[int] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     reasoning_effort: Optional[str] = None
@@ -132,8 +138,14 @@ class PipelineConfig:
     disable_sandbox: bool = False
     recurrence_threshold: int = 2
     fail_on_generation_error: bool = False
+    write_global_summary: bool = False
 
     @property
     def store_artifacts(self) -> bool:
         """Backward-compatible alias for legacy callers."""
         return self.save_code
+
+    @property
+    def effective_runs_per_prompt(self) -> int:
+        """Canonical repeat count; keeps samples_per_prompt backward-compatible."""
+        return self.runs_per_prompt if self.runs_per_prompt is not None else self.samples_per_prompt

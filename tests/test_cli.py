@@ -243,6 +243,9 @@ def test_full_run_passes_failure_check_options(monkeypatch, tmp_path):
         captured["disable_sandbox"] = config.disable_sandbox
         captured["recurrence_threshold"] = config.recurrence_threshold
         captured["fail_on_generation_error"] = config.fail_on_generation_error
+        captured["runs_per_prompt"] = config.runs_per_prompt
+        captured["samples_per_prompt"] = config.samples_per_prompt
+        captured["write_global_summary"] = config.write_global_summary
         return {}
 
     monkeypatch.setattr(cli_module, "run_pipeline", fake_run_pipeline)
@@ -261,8 +264,11 @@ def test_full_run_passes_failure_check_options(monkeypatch, tmp_path):
             "--disable-sandbox",
             "--recurrence-threshold",
             "3",
+            "--runs-per-prompt",
+            "5",
             "--fail-on-generation-error",
             "true",
+            "--write-global-summary",
         ]
     )
 
@@ -272,6 +278,37 @@ def test_full_run_passes_failure_check_options(monkeypatch, tmp_path):
     assert captured["disable_sandbox"] is True
     assert captured["recurrence_threshold"] == 3
     assert captured["fail_on_generation_error"] is True
+    assert captured["runs_per_prompt"] == 5
+    assert captured["samples_per_prompt"] == 5
+    assert captured["write_global_summary"] is True
+
+
+def test_full_run_accepts_input_folder(monkeypatch, tmp_path):
+    prompt_dir = tmp_path / "prompt_sets"
+    prompt_dir.mkdir()
+    (prompt_dir / "a.jsonl").write_text('{"prompt_id":"a","prompt":"Write code"}\n', encoding="utf-8")
+    output_dir = tmp_path / "out"
+    captured = {}
+
+    def fake_run_pipeline(config):
+        captured["suite_path"] = config.suite_path
+        return {}
+
+    monkeypatch.setattr(cli_module, "run_pipeline", fake_run_pipeline)
+
+    exit_code = cli_module.main(
+        [
+            "--model",
+            "gpt-5",
+            "--input",
+            str(prompt_dir),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["suite_path"] == prompt_dir
 
 
 def test_evaluate_artifacts_cli_writes_results(monkeypatch, tmp_path, capsys):

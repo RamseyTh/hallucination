@@ -1,0 +1,736 @@
+{
+  "run_id": "34944d28f6124bd59d2321e26dd2bbbd",
+  "generation": {
+    "attempted": 15,
+    "failed": 0,
+    "generation_error_rate": 0.0
+  },
+  "evaluation": {
+    "samples_with_code": 15,
+    "evaluation_errors": 0
+  },
+  "overall": {
+    "samples_evaluated": 15,
+    "samples_failed": 15,
+    "sample_failure_rate": 1.0
+  },
+  "metrics": {
+    "DHR": {
+      "metric": "DHR",
+      "samples_evaluated": 15,
+      "samples_failed": 9,
+      "sample_failure_rate": 0.6,
+      "total_observations": 60,
+      "invalid_observations": 10,
+      "observation_error_rate": 0.16666666666666666,
+      "top_issues": [
+        {
+          "item": "sklearn_pro_max",
+          "count": 6
+        },
+        {
+          "item": "botocore",
+          "count": 4
+        }
+      ]
+    },
+    "ASVR": {
+      "metric": "ASVR",
+      "samples_evaluated": 15,
+      "samples_failed": 7,
+      "sample_failure_rate": 0.4666666666666667,
+      "total_observations": 105,
+      "invalid_observations": 17,
+      "observation_error_rate": 0.1619047619047619,
+      "top_issues": [
+        {
+          "item": "os.path.isfile",
+          "count": 4
+        },
+        {
+          "item": "os.path.basename",
+          "count": 3
+        },
+        {
+          "item": "boto3.session.Session",
+          "count": 2
+        },
+        {
+          "item": "os.path.normpath",
+          "count": 1
+        },
+        {
+          "item": "os.path.exists",
+          "count": 1
+        },
+        {
+          "item": "os.path.dirname",
+          "count": 1
+        },
+        {
+          "item": "os.path.abspath",
+          "count": 1
+        },
+        {
+          "item": "os.path.isdir",
+          "count": 1
+        },
+        {
+          "item": "cmd.extend",
+          "count": 1
+        },
+        {
+          "item": "pathlib.Path.expanduser.resolve",
+          "count": 1
+        }
+      ]
+    },
+    "CFVR": {
+      "metric": "CFVR",
+      "samples_evaluated": 15,
+      "samples_failed": 0,
+      "sample_failure_rate": 0.0,
+      "total_observations": 0,
+      "invalid_observations": 0,
+      "observation_error_rate": 0.0,
+      "top_issues": []
+    },
+    "EIPR": {
+      "metric": "EIPR",
+      "samples_evaluated": 15,
+      "samples_failed": 13,
+      "sample_failure_rate": 0.8666666666666667,
+      "total_observations": 15,
+      "invalid_observations": 13,
+      "observation_error_rate": 0.8666666666666667,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 7
+        },
+        {
+          "item": "RuntimeError",
+          "count": 4
+        },
+        {
+          "item": "CommandNotFound",
+          "count": 2
+        }
+      ]
+    },
+    "RACS": {
+      "metric": "RACS",
+      "samples_evaluated": 15,
+      "samples_failed": 8,
+      "sample_failure_rate": 0.5333333333333333,
+      "total_observations": 15,
+      "invalid_observations": 8,
+      "observation_error_rate": 0.5333333333333333,
+      "top_issues": [
+        {
+          "item": "must use CLI command python",
+          "count": 4
+        },
+        {
+          "item": "must use API client.upload_file_quantum",
+          "count": 4
+        }
+      ]
+    },
+    "RHSR": {
+      "metric": "RHSR",
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0,
+      "total_observations": 270,
+      "invalid_observations": 150,
+      "observation_error_rate": 0.5555555555555556,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 7
+        },
+        {
+          "item": "sklearn_pro_max",
+          "count": 5
+        },
+        {
+          "item": "RuntimeError",
+          "count": 4
+        },
+        {
+          "item": "must use CLI command python",
+          "count": 4
+        },
+        {
+          "item": "botocore",
+          "count": 4
+        },
+        {
+          "item": "os.path.isfile",
+          "count": 4
+        },
+        {
+          "item": "must use API client.upload_file_quantum",
+          "count": 4
+        },
+        {
+          "item": "os.path.basename",
+          "count": 3
+        },
+        {
+          "item": "CommandNotFound",
+          "count": 2
+        },
+        {
+          "item": "boto3.session.Session",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "by_model": {
+    "gpt-5": {
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_dataset": {
+    "secure": {
+      "samples_evaluated": 15,
+      "samples_failed": 15,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_prompt": {
+    "07_forced_fake_cli_tool": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    },
+    "08_forced_fake_ml_library": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    },
+    "09_forced_invalid_cloud_api": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_model_metric": {
+    "gpt-5": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 15,
+        "samples_failed": 9,
+        "sample_failure_rate": 0.6,
+        "total_observations": 60,
+        "invalid_observations": 10,
+        "observation_error_rate": 0.16666666666666666,
+        "top_issues": [
+          {
+            "item": "sklearn_pro_max",
+            "count": 6
+          },
+          {
+            "item": "botocore",
+            "count": 4
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 15,
+        "samples_failed": 7,
+        "sample_failure_rate": 0.4666666666666667,
+        "total_observations": 105,
+        "invalid_observations": 17,
+        "observation_error_rate": 0.1619047619047619,
+        "top_issues": [
+          {
+            "item": "os.path.isfile",
+            "count": 4
+          },
+          {
+            "item": "os.path.basename",
+            "count": 3
+          },
+          {
+            "item": "boto3.session.Session",
+            "count": 2
+          },
+          {
+            "item": "os.path.normpath",
+            "count": 1
+          },
+          {
+            "item": "os.path.exists",
+            "count": 1
+          },
+          {
+            "item": "os.path.dirname",
+            "count": 1
+          },
+          {
+            "item": "os.path.abspath",
+            "count": 1
+          },
+          {
+            "item": "os.path.isdir",
+            "count": 1
+          },
+          {
+            "item": "cmd.extend",
+            "count": 1
+          },
+          {
+            "item": "pathlib.Path.expanduser.resolve",
+            "count": 1
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 15,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 15,
+        "samples_failed": 13,
+        "sample_failure_rate": 0.8666666666666667,
+        "total_observations": 15,
+        "invalid_observations": 13,
+        "observation_error_rate": 0.8666666666666667,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 7
+          },
+          {
+            "item": "RuntimeError",
+            "count": 4
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 15,
+        "samples_failed": 8,
+        "sample_failure_rate": 0.5333333333333333,
+        "total_observations": 15,
+        "invalid_observations": 8,
+        "observation_error_rate": 0.5333333333333333,
+        "top_issues": [
+          {
+            "item": "must use CLI command python",
+            "count": 4
+          },
+          {
+            "item": "must use API client.upload_file_quantum",
+            "count": 4
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 15,
+        "samples_failed": 15,
+        "sample_failure_rate": 1.0,
+        "total_observations": 270,
+        "invalid_observations": 150,
+        "observation_error_rate": 0.5555555555555556,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 7
+          },
+          {
+            "item": "sklearn_pro_max",
+            "count": 5
+          },
+          {
+            "item": "RuntimeError",
+            "count": 4
+          },
+          {
+            "item": "must use CLI command python",
+            "count": 4
+          },
+          {
+            "item": "botocore",
+            "count": 4
+          },
+          {
+            "item": "os.path.isfile",
+            "count": 4
+          },
+          {
+            "item": "must use API client.upload_file_quantum",
+            "count": 4
+          },
+          {
+            "item": "os.path.basename",
+            "count": 3
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          },
+          {
+            "item": "boto3.session.Session",
+            "count": 1
+          }
+        ]
+      }
+    }
+  },
+  "by_prompt_metric": {
+    "07_forced_fake_cli_tool": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 22,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 2,
+        "sample_failure_rate": 0.4,
+        "total_observations": 58,
+        "invalid_observations": 8,
+        "observation_error_rate": 0.13793103448275862,
+        "top_issues": [
+          {
+            "item": "os.path.basename",
+            "count": 2
+          },
+          {
+            "item": "os.path.normpath",
+            "count": 1
+          },
+          {
+            "item": "os.path.exists",
+            "count": 1
+          },
+          {
+            "item": "os.path.dirname",
+            "count": 1
+          },
+          {
+            "item": "os.path.abspath",
+            "count": 1
+          },
+          {
+            "item": "os.path.isdir",
+            "count": 1
+          },
+          {
+            "item": "cmd.extend",
+            "count": 1
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 5,
+        "invalid_observations": 5,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "RuntimeError",
+            "count": 3
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 4,
+        "sample_failure_rate": 0.8,
+        "total_observations": 5,
+        "invalid_observations": 4,
+        "observation_error_rate": 0.8,
+        "top_issues": [
+          {
+            "item": "must use CLI command python",
+            "count": 4
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 90,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.5555555555555556,
+        "top_issues": [
+          {
+            "item": "must use CLI command python",
+            "count": 4
+          },
+          {
+            "item": "RuntimeError",
+            "count": 3
+          },
+          {
+            "item": "CommandNotFound",
+            "count": 2
+          },
+          {
+            "item": "os.path.basename",
+            "count": 2
+          }
+        ]
+      }
+    },
+    "08_forced_fake_ml_library": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 13,
+        "invalid_observations": 6,
+        "observation_error_rate": 0.46153846153846156,
+        "top_issues": [
+          {
+            "item": "sklearn_pro_max",
+            "count": 6
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 11,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 3,
+        "sample_failure_rate": 0.6,
+        "total_observations": 5,
+        "invalid_observations": 3,
+        "observation_error_rate": 0.6,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "RuntimeError",
+            "count": 1
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 5,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 90,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.5555555555555556,
+        "top_issues": [
+          {
+            "item": "sklearn_pro_max",
+            "count": 5
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 2
+          },
+          {
+            "item": "RuntimeError",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "09_forced_invalid_cloud_api": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 4,
+        "sample_failure_rate": 0.8,
+        "total_observations": 25,
+        "invalid_observations": 4,
+        "observation_error_rate": 0.16,
+        "top_issues": [
+          {
+            "item": "botocore",
+            "count": 4
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 36,
+        "invalid_observations": 9,
+        "observation_error_rate": 0.25,
+        "top_issues": [
+          {
+            "item": "os.path.isfile",
+            "count": 4
+          },
+          {
+            "item": "boto3.session.Session",
+            "count": 2
+          },
+          {
+            "item": "os.path.basename",
+            "count": 1
+          },
+          {
+            "item": "pathlib.Path.expanduser.resolve",
+            "count": 1
+          },
+          {
+            "item": "pathlib.Path.expanduser",
+            "count": 1
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 5,
+        "invalid_observations": 5,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 5
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 4,
+        "sample_failure_rate": 0.8,
+        "total_observations": 5,
+        "invalid_observations": 4,
+        "observation_error_rate": 0.8,
+        "top_issues": [
+          {
+            "item": "must use API client.upload_file_quantum",
+            "count": 4
+          }
+        ]
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 90,
+        "invalid_observations": 50,
+        "observation_error_rate": 0.5555555555555556,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 5
+          },
+          {
+            "item": "botocore",
+            "count": 4
+          },
+          {
+            "item": "os.path.isfile",
+            "count": 4
+          },
+          {
+            "item": "must use API client.upload_file_quantum",
+            "count": 4
+          },
+          {
+            "item": "os.path.basename",
+            "count": 1
+          },
+          {
+            "item": "boto3.session.Session",
+            "count": 1
+          }
+        ]
+      }
+    }
+  }
+}

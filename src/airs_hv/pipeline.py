@@ -34,6 +34,7 @@ from .generator import build_model_client, resolve_model_selection
 from .hallucination_checks import (
     evaluate_samples_and_write_outputs,
     run_adversarial_self_checks as run_hallucination_adversarial_self_checks,
+    write_global_failure_summary_outputs,
 )
 from .trace import TraceLogger, _json_default as trace_json_default, summarize_sample_for_trace
 
@@ -49,6 +50,11 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
     selected_models = resolve_model_selection(config.model)
     if config.gateway_model_override and len(selected_models) != 1:
         raise ValueError("--gateway-model can only be used with a single model alias.")
+    prompt_files = resolve_input_prompt_files(Path(config.suite_path))
+    runs_per_prompt = config.effective_runs_per_prompt
+    if runs_per_prompt < 1:
+        raise ValueError("--runs-per-prompt must be at least 1.")
+
     run_id = uuid4().hex
     output_dir = Path(config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -62,18 +68,9 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
         selected_models=selected_models,
         gateway_model_override=config.gateway_model_override,
         input_file=str(config.suite_path),
+        prompt_files=[str(path) for path in prompt_files],
         config=_sanitized_pipeline_config(config),
     )
-
-    prompts, prompt_load_stats = _load_prompts(
-        Path(config.suite_path),
-        trace_logger=trace_logger,
-    )
-    if not prompts:
-        raise ValueError(
-            f"No valid prompts were loaded from {config.suite_path}. "
-            "Input must be JSONL with prompt_id and prompt fields."
-        )
 
     adversarial_checks = _run_adversarial_injection_checks()
     hallucination_adversarial_checks = None
@@ -87,13 +84,14 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
         for model_alias in selected_models
     }
 
-    print(f"Loaded {len(prompts)} valid prompt(s) from {config.suite_path}")
-    if prompt_load_stats["skipped_invalid_lines"] or prompt_load_stats["skipped_empty_lines"]:
-        print(
-            "Skipped prompt lines: "
-            f"empty={prompt_load_stats['skipped_empty_lines']} "
-            f"invalid={prompt_load_stats['skipped_invalid_lines']}"
-        )
+    input_path = Path(config.suite_path)
+    if input_path.is_dir():
+        print(f"Input path is a folder: {input_path}")
+        print(f"Found {len(prompt_files)} JSONL prompt file(s):")
+        for prompt_file in prompt_files:
+            print(f"- {prompt_file}")
+    else:
+        print(f"Input path is a file: {input_path}")
     print(
         "Adversarial self-checks passed: "
         f"{adversarial_checks['total_cases']} injected case(s)"
@@ -104,58 +102,137 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
             f"{hallucination_adversarial_checks['total_cases']} injected case(s)"
         )
     print(f"Selected models: {selected_models}")
+    print(f"Runs per prompt: {runs_per_prompt}")
     if config.gateway_model_override:
         print(f"Gateway model override: {config.gateway_model_override}")
     all_samples: List[CodeSample] = []
     historical_outputs: List[Dict[str, Any]] = []
     execution_errors: List[Dict[str, Any]] = []
+    group_output_summaries: List[Dict[str, Any]] = []
+    global_failure_records: List[Dict[str, Any]] = []
+    global_generation_errors: List[Dict[str, Any]] = []
+    prompt_load_stats = _empty_prompt_load_stats()
     prior_output_index = _load_prior_output_index(output_dir)
     current_output_index: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
     sample_index = 0
-    for prompt in prompts:
+    for prompt_file in prompt_files:
+        dataset_name = _safe_path_component(prompt_file.stem.replace(" ", "_"))
+        prompts, file_load_stats = _load_prompts(prompt_file, trace_logger=trace_logger)
+        _merge_prompt_load_stats(prompt_load_stats, prompt_file, file_load_stats)
+        if not prompts:
+            if len(prompt_files) == 1:
+                raise ValueError(
+                    f"No valid prompts were loaded from {prompt_file}. "
+                    "Input must be JSONL with prompt_id and prompt fields."
+                )
+            print(f"Skipping dataset={dataset_name}: no valid prompts loaded.")
+            continue
+
+        for prompt in prompts:
+            prompt.prompt_file = prompt_file.name
+            prompt.prompt_file_stem = dataset_name
+
+        print(f"Loaded {len(prompts)} valid prompt(s) from {prompt_file}")
+        if file_load_stats["skipped_invalid_lines"] or file_load_stats["skipped_empty_lines"]:
+            print(
+                "Skipped prompt lines: "
+                f"empty={file_load_stats['skipped_empty_lines']} "
+                f"invalid={file_load_stats['skipped_invalid_lines']}"
+            )
+
         for model_alias in selected_models:
             client = clients[model_alias]
-            for sample_number in range(config.samples_per_prompt):
-                try:
-                    sample = _run_single_sample(
-                        idx=sample_index,
-                        sample_number=sample_number,
-                        prompt=prompt,
-                        client=client,
-                        config=config,
-                        output_dir=output_dir,
-                        bundles_dir=bundles_dir,
-                        trace_logger=trace_logger,
-                        historical_outputs=historical_outputs,
-                        prior_output_index=prior_output_index,
-                        current_output_index=current_output_index,
-                        run_id=run_id,
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    error_record = _build_error_record(
-                        prompt=prompt,
-                        model=model_alias,
-                        sample_id=sample_index,
-                        sample_number=sample_number,
-                        error=exc,
-                    )
-                    execution_errors.append(error_record)
-                    trace_logger.log("sample_error", **error_record)
+            group_samples: List[CodeSample] = []
+            group_errors: List[Dict[str, Any]] = []
+            group_history: List[Dict[str, Any]] = []
+            print(
+                f"\nProcessing dataset={dataset_name} model={model_alias} "
+                f"prompts={len(prompts)} runs_per_prompt={runs_per_prompt}"
+            )
+            for prompt in prompts:
+                for run_sequence_id in range(1, runs_per_prompt + 1):
                     print(
-                        f"  [{sample_index}] prompt={prompt.prompt_id} model={model_alias} "
-                        f"status=error error={type(exc).__name__}: {exc}"
+                        f"Generating prompt={prompt.prompt_id} "
+                        f"run={run_sequence_id}/{runs_per_prompt} model={model_alias}"
+                    )
+                    try:
+                        sample = _run_single_sample(
+                            idx=sample_index,
+                            sample_number=run_sequence_id - 1,
+                            run_sequence_id=run_sequence_id,
+                            prompt=prompt,
+                            prompt_file=prompt_file.name,
+                            prompt_file_stem=dataset_name,
+                            client=client,
+                            config=config,
+                            output_dir=output_dir,
+                            bundles_dir=bundles_dir,
+                            trace_logger=trace_logger,
+                            historical_outputs=group_history,
+                            prior_output_index=prior_output_index,
+                            current_output_index=current_output_index,
+                            pipeline_run_id=run_id,
+                            write_legacy_flat_artifact=(len(prompt_files) == 1 and runs_per_prompt == 1),
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        error_record = _build_error_record(
+                            prompt=prompt,
+                            model=model_alias,
+                            sample_id=sample_index,
+                            sample_number=run_sequence_id - 1,
+                            run_id=run_sequence_id,
+                            prompt_file=prompt_file.name,
+                            prompt_file_stem=dataset_name,
+                            error=exc,
+                        )
+                        execution_errors.append(error_record)
+                        group_errors.append(error_record)
+                        global_generation_errors.append(error_record)
+                        trace_logger.log("sample_error", **error_record)
+                        print(
+                            f"  [{sample_index}] prompt={prompt.prompt_id} model={model_alias} "
+                            f"run_id={run_sequence_id} status=error error={type(exc).__name__}: {exc}"
+                        )
+                        sample_index += 1
+                        continue
+
+                    all_samples.append(sample)
+                    group_samples.append(sample)
+                    history_record = _build_history_record(sample)
+                    historical_outputs.append(history_record)
+                    group_history.append(history_record)
+                    print(
+                        f"  [{sample_index}] prompt={sample.prompt_id} model={sample.model} "
+                        f"run_id={sample.run_id} code_len={len(sample.code)} "
+                        f"status={sample.failure_report['overall_status']}"
                     )
                     sample_index += 1
-                    continue
 
-                all_samples.append(sample)
-                historical_outputs.append(_build_history_record(sample))
-                print(
-                    f"  [{sample_index}] prompt={sample.prompt_id} model={sample.model} "
-                    f"code_len={len(sample.code)} status={sample.failure_report['overall_status']}"
+            if config.run_failure_checks:
+                results_root = Path(config.results_dir) if config.results_dir else output_dir / "results"
+                group_results_dir = results_root / _safe_path_component(model_alias) / dataset_name
+                failure_check_outputs = evaluate_samples_and_write_outputs(
+                    samples=group_samples,
+                    generation_errors=group_errors,
+                    results_dir=group_results_dir,
+                    recurrence_threshold=config.recurrence_threshold,
+                    disable_sandbox=config.disable_sandbox or config.skip_dynamic,
+                    run_id=run_id,
                 )
-                sample_index += 1
+                group_output_summaries.append(
+                    {
+                        "model": model_alias,
+                        "dataset": dataset_name,
+                        "results_dir": failure_check_outputs["results_dir"],
+                        "failure_checks_jsonl": failure_check_outputs["failure_checks_jsonl"],
+                        "failure_summary_json": failure_check_outputs["failure_summary_json"],
+                        "records_evaluated": failure_check_outputs["records_evaluated"],
+                        "generation_errors": failure_check_outputs["generation_errors"],
+                    }
+                )
+                global_failure_records.extend(failure_check_outputs.get("records", []))
+                print(f"Writing {failure_check_outputs['failure_summary_json']}")
 
     report = _build_report(
         samples=all_samples,
@@ -170,24 +247,18 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
     )
     if hallucination_adversarial_checks:
         report["hallucination_adversarial_checks"] = hallucination_adversarial_checks
-    failure_check_outputs = None
     if config.run_failure_checks:
-        results_dir = Path(config.results_dir) if config.results_dir else output_dir / "results"
-        failure_check_outputs = evaluate_samples_and_write_outputs(
-            samples=all_samples,
-            generation_errors=execution_errors,
-            results_dir=results_dir,
-            recurrence_threshold=config.recurrence_threshold,
-            disable_sandbox=config.disable_sandbox or config.skip_dynamic,
-            run_id=run_id,
-        )
-        report["failure_check_outputs"] = {
-            "results_dir": failure_check_outputs["results_dir"],
-            "failure_checks_jsonl": failure_check_outputs["failure_checks_jsonl"],
-            "failure_summary_json": failure_check_outputs["failure_summary_json"],
-            "records_evaluated": failure_check_outputs["records_evaluated"],
-            "generation_errors": failure_check_outputs["generation_errors"],
-        }
+        report["failure_check_outputs"] = {"groups": group_output_summaries}
+        if config.write_global_summary:
+            results_root = Path(config.results_dir) if config.results_dir else output_dir / "results"
+            global_outputs = write_global_failure_summary_outputs(
+                records=global_failure_records,
+                generation_errors=global_generation_errors,
+                results_dir=results_root,
+                recurrence_threshold=config.recurrence_threshold,
+                run_id=run_id,
+            )
+            report["failure_check_outputs"]["global"] = global_outputs
     report_path = output_dir / "report.jsonl"
     _write_jsonl_object(report_path, report)
 
@@ -205,14 +276,19 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
     print("\nPipeline complete.")
     print(f"  Trace:  {trace_logger.path}")
     print(f"  Report: {report_path}")
-    if failure_check_outputs:
-        print(f"  Failure checks: {failure_check_outputs['failure_checks_jsonl']}")
-        print(f"  Failure summary: {failure_check_outputs['failure_summary_json']}")
+    if group_output_summaries:
+        print(f"  Result summaries written: {len(group_output_summaries)}")
     print(f"  Models: {selected_models}")
     print(
         f"  samples={report['total_samples']} "
         f"failures={report['total_failures']} errors={report['total_errors']}"
     )
+    print("Completed pipeline.")
+    print(f"Datasets processed: {len(prompt_files)}")
+    print(f"Models processed: {len(selected_models)}")
+    print(f"Runs per prompt: {runs_per_prompt}")
+    print(f"Artifacts generated: {len(all_samples)}")
+    print(f"Result summaries written: {len(group_output_summaries)}")
 
     if config.fail_on_generation_error and execution_errors:
         raise RuntimeError(
@@ -223,11 +299,51 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
     return report
 
 
+def resolve_input_prompt_files(input_path: Path) -> List[Path]:
+    """Resolve a JSONL file or a folder of JSONL files into sorted prompt files."""
+
+    if input_path.is_dir():
+        prompt_files = sorted(path for path in input_path.glob("*.jsonl") if path.is_file())
+        if not prompt_files:
+            raise ValueError(f"Input folder has no JSONL files: {input_path}")
+        return prompt_files
+    if input_path.is_file():
+        if input_path.suffix.lower() != ".jsonl":
+            raise ValueError(
+                f"Prompt input must be JSONL. Received '{input_path.name}'. JSON arrays are not supported."
+            )
+        return [input_path]
+    raise FileNotFoundError(f"Prompt input path not found: {input_path}")
+
+
+def _empty_prompt_load_stats() -> Dict[str, Any]:
+    return {
+        "total_lines": 0,
+        "loaded_prompts": 0,
+        "skipped_empty_lines": 0,
+        "skipped_invalid_lines": 0,
+        "files": {},
+    }
+
+
+def _merge_prompt_load_stats(
+    aggregate: Dict[str, Any],
+    prompt_file: Path,
+    file_stats: Dict[str, int],
+) -> None:
+    for key in ("total_lines", "loaded_prompts", "skipped_empty_lines", "skipped_invalid_lines"):
+        aggregate[key] += int(file_stats.get(key, 0))
+    aggregate["files"][prompt_file.name] = dict(file_stats)
+
+
 def _run_single_sample(
     *,
     idx: int,
     sample_number: int,
+    run_sequence_id: int,
     prompt: "Prompt",
+    prompt_file: str,
+    prompt_file_stem: str,
     client: "ModelClient",
     config: "PipelineConfig",
     output_dir: Path,
@@ -236,7 +352,8 @@ def _run_single_sample(
     historical_outputs: List[Dict[str, Any]],
     prior_output_index: Dict[str, List[Dict[str, Any]]],
     current_output_index: Dict[str, List[Dict[str, Any]]],
-    run_id: str,
+    pipeline_run_id: str,
+    write_legacy_flat_artifact: bool,
 ) -> "CodeSample":
     from .schema import CodeSample, LLMResponse
 
@@ -244,6 +361,9 @@ def _run_single_sample(
         "generation_requested",
         prompt_id=prompt.prompt_id,
         sample_id=sample_number,
+        run_id=run_sequence_id,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
         model=client.model_target,
         model_alias=client.model_target,
         gateway_model=getattr(client, "gateway_model_id", None),
@@ -251,8 +371,11 @@ def _run_single_sample(
     )
     code = client.generate(prompt.prompt, prompt_id=prompt.prompt_id)
     raw_model_output = getattr(client, "last_raw_output", None) or code
-    generation_meta = _build_generation_meta(client, run_id=run_id)
+    generation_meta = _build_generation_meta(client, run_id=pipeline_run_id)
     generation_meta["raw_output_saved"] = False
+    generation_meta["prompt_file"] = prompt_file
+    generation_meta["prompt_file_stem"] = prompt_file_stem
+    generation_meta["run_id"] = run_sequence_id
     response = LLMResponse(
         prompt_id=prompt.prompt_id,
         sample_id=sample_number,
@@ -266,17 +389,23 @@ def _run_single_sample(
         response=response,
         prompt_family=prompt.family,
         prompt_contract=prompt.contract,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
+        run_id=run_sequence_id,
     )
 
     if config.save_raw_output:
-        raw_file = _write_raw_output(
+        raw_files = _write_raw_output(
             output_dir=output_dir,
             prompt_id=sample.prompt_id,
-            sample_id=sample.sample_id,
+            run_id=run_sequence_id,
             model=sample.model,
+            prompt_file_stem=prompt_file_stem,
             raw_output=raw_model_output,
+            write_legacy_flat_artifact=write_legacy_flat_artifact,
         )
-        generation_meta["raw_output_file"] = raw_file
+        generation_meta["raw_output_file"] = raw_files["raw_output_file"]
+        generation_meta["grouped_raw_output_file"] = raw_files["grouped_raw_output_file"]
         generation_meta["raw_output_saved"] = True
 
     sample.warnings = _collect_generation_warnings(
@@ -288,6 +417,9 @@ def _run_single_sample(
         "generation_completed",
         prompt_id=prompt.prompt_id,
         sample_id=sample.sample_id,
+        run_id=sample.run_id,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
         model=sample.model,
         model_alias=sample.model,
         gateway_model=generation_meta.get("request", {}).get("gateway_model"),
@@ -304,6 +436,9 @@ def _run_single_sample(
         "artifact_normalized",
         prompt_id=sample.prompt_id,
         sample_id=sample.sample_id,
+        run_id=sample.run_id,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
         model=sample.model,
         artifact_metadata=sample.artifact_metadata,
     )
@@ -318,6 +453,9 @@ def _run_single_sample(
         "evaluation_completed",
         prompt_id=sample.prompt_id,
         sample_id=sample.sample_id,
+        run_id=sample.run_id,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
         model=sample.model,
         model_alias=sample.model,
         gateway_model=generation_meta.get("request", {}).get("gateway_model"),
@@ -326,22 +464,31 @@ def _run_single_sample(
     )
 
     if config.save_code:
-        sample.artifact_file = _write_artifact(output_dir=output_dir, sample=sample)
+        artifact_files = _write_artifact(
+            output_dir=output_dir,
+            sample=sample,
+            write_legacy_flat_artifact=write_legacy_flat_artifact,
+        )
+        sample.artifact_file = artifact_files["artifact_file"]
+        generation_meta["grouped_artifact_file"] = artifact_files["grouped_artifact_file"]
         _append_artifact_metadata(output_dir=output_dir, sample=sample)
 
-    _write_bundle(bundles_dir, idx, sample, run_id=run_id)
+    _write_bundle(bundles_dir, idx, sample, run_id=pipeline_run_id)
     trace_logger.log(
         "sample_completed",
         **summarize_sample_for_trace(
             prompt_id=sample.prompt_id,
             sample_id=sample.sample_id,
-        prompt=sample.prompt_source,
-        model=sample.model,
-        raw_output=raw_model_output,
-        generation_meta=generation_meta,
+            prompt=sample.prompt_source,
+            model=sample.model,
+            raw_output=raw_model_output,
+            generation_meta=generation_meta,
             warnings=sample.warnings,
             evaluation_results=sample.failure_report,
         ),
+        run_id=sample.run_id,
+        prompt_file=prompt_file,
+        prompt_file_stem=prompt_file_stem,
         model_alias=sample.model,
         gateway_model=generation_meta.get("request", {}).get("gateway_model"),
         generated_code_length=len(sample.code),
@@ -555,6 +702,9 @@ def _write_bundle(
     bundle = {
         "run_id": run_id,
         "prompt_id": sample.prompt_id,
+        "prompt_file": sample.prompt_file,
+        "prompt_file_stem": sample.prompt_file_stem,
+        "sample_run_id": sample.run_id,
         "prompt_source": sample.prompt_source,
         "prompt_family": sample.prompt_family,
         "sample_id": sample.sample_id,
@@ -572,30 +722,68 @@ def _write_bundle(
     _write_jsonl_object(bundle_path, bundle)
 
 
-def _write_artifact(*, output_dir: Path, sample: "CodeSample") -> str:
-    artifact_path = output_dir / _artifact_filename(sample)
-    artifact_path.write_text(sample.code, encoding="utf-8")
-    return str(artifact_path.relative_to(output_dir))
+def _write_artifact(
+    *,
+    output_dir: Path,
+    sample: "CodeSample",
+    write_legacy_flat_artifact: bool,
+) -> Dict[str, str]:
+    grouped_path = (
+        output_dir
+        / _safe_path_component(sample.model)
+        / _safe_path_component(sample.prompt_file_stem or "unknown")
+        / "artifacts"
+        / _group_artifact_filename(sample)
+    )
+    grouped_path.parent.mkdir(parents=True, exist_ok=True)
+    grouped_path.write_text(sample.code, encoding="utf-8")
+
+    artifact_file = str(grouped_path.relative_to(output_dir))
+    if write_legacy_flat_artifact:
+        legacy_path = output_dir / _legacy_artifact_filename(sample)
+        legacy_path.write_text(sample.code, encoding="utf-8")
+        artifact_file = str(legacy_path.relative_to(output_dir))
+
+    return {
+        "artifact_file": artifact_file,
+        "grouped_artifact_file": str(grouped_path),
+    }
 
 
 def _write_raw_output(
     *,
     output_dir: Path,
     prompt_id: str,
-    sample_id: object,
+    run_id: int,
     model: str,
+    prompt_file_stem: str,
     raw_output: str,
-) -> str:
-    raw_dir = output_dir / "raw"
-    raw_dir.mkdir(parents=True, exist_ok=True)
+    write_legacy_flat_artifact: bool,
+) -> Dict[str, str]:
+    grouped_raw_dir = (
+        output_dir
+        / _safe_path_component(model)
+        / _safe_path_component(prompt_file_stem)
+        / "raw"
+    )
+    grouped_raw_dir.mkdir(parents=True, exist_ok=True)
     safe_prompt_id = _safe_path_component(prompt_id)
-    safe_model = _safe_path_component(model.replace(":", "_"))
-    base_name = f"{safe_prompt_id}_{safe_model}"
-    if str(sample_id) not in {"0", "None"}:
-        base_name = f"{base_name}_sample_{_safe_path_component(str(sample_id))}"
-    raw_path = raw_dir / f"{base_name}.txt"
+    raw_path = grouped_raw_dir / f"{safe_prompt_id}_run{run_id:02d}.txt"
     raw_path.write_text(raw_output, encoding="utf-8")
-    return str(raw_path.relative_to(output_dir))
+
+    raw_output_file = str(raw_path.relative_to(output_dir))
+    if write_legacy_flat_artifact:
+        legacy_raw_dir = output_dir / "raw"
+        legacy_raw_dir.mkdir(parents=True, exist_ok=True)
+        safe_model = _safe_path_component(model.replace(":", "_"))
+        legacy_raw_path = legacy_raw_dir / f"{safe_prompt_id}_{safe_model}.txt"
+        legacy_raw_path.write_text(raw_output, encoding="utf-8")
+        raw_output_file = str(legacy_raw_path.relative_to(output_dir))
+
+    return {
+        "raw_output_file": raw_output_file,
+        "grouped_raw_output_file": str(raw_path),
+    }
 
 
 def _append_artifact_metadata(*, output_dir: Path, sample: "CodeSample") -> None:
@@ -604,8 +792,13 @@ def _append_artifact_metadata(*, output_dir: Path, sample: "CodeSample") -> None
         "prompt_id": sample.prompt_id,
         "sample_id": sample.sample_id,
         "model": sample.model,
+        "run_id": sample.run_id,
+        "prompt_file": sample.prompt_file,
+        "prompt_file_stem": sample.prompt_file_stem,
         "artifact_file": sample.artifact_file,
+        "grouped_artifact_file": sample.response.meta.get("grouped_artifact_file"),
         "raw_output_file": sample.response.meta.get("raw_output_file"),
+        "grouped_raw_output_file": sample.response.meta.get("grouped_raw_output_file"),
         "artifact_type": sample.artifact_metadata.get("artifact_type"),
         "generated_code_length": len(sample.code),
         "warnings": sample.warnings,
@@ -622,7 +815,12 @@ def _append_artifact_metadata(*, output_dir: Path, sample: "CodeSample") -> None
         )
 
 
-def _artifact_filename(sample: "CodeSample") -> str:
+def _group_artifact_filename(sample: "CodeSample") -> str:
+    safe_prompt_id = _safe_path_component(sample.prompt_id)
+    return f"{safe_prompt_id}_run{int(sample.run_id or 1):02d}{_artifact_extension(sample)}"
+
+
+def _legacy_artifact_filename(sample: "CodeSample") -> str:
     safe_prompt_id = _safe_path_component(sample.prompt_id)
     safe_model = _safe_path_component(sample.model.replace(":", "_"))
     base_name = f"{safe_prompt_id}_{safe_model}"
@@ -1015,6 +1213,9 @@ def _build_history_record(sample: "CodeSample") -> Dict[str, Any]:
         prompt_spec["artifact_type"] = sample.artifact_metadata["artifact_type"]
     return {
         "artifact_id": f"{sample.prompt_id}:{sample.sample_id}",
+        "prompt_file": sample.prompt_file,
+        "prompt_file_stem": sample.prompt_file_stem,
+        "run_id": sample.run_id,
         "artifact": sample.code,
         "metadata": sample.artifact_metadata,
         "prompt_spec": prompt_spec,
@@ -1046,12 +1247,18 @@ def _build_error_record(
     model: str,
     sample_id: int,
     sample_number: int,
+    run_id: int,
+    prompt_file: str | None,
+    prompt_file_stem: str | None,
     error: Exception,
 ) -> Dict[str, Any]:
     return {
         "prompt_id": prompt.prompt_id,
         "prompt": prompt.prompt,
+        "prompt_file": prompt_file,
+        "prompt_file_stem": prompt_file_stem,
         "model": model,
+        "run_id": run_id,
         "sample_id": sample_id,
         "sample_number": sample_number,
         "status": "error",
@@ -1067,6 +1274,7 @@ def _sanitized_pipeline_config(config: "PipelineConfig") -> Dict[str, Any]:
         "output_dir": str(config.output_dir),
         "model": config.model,
         "samples_per_prompt": config.samples_per_prompt,
+        "runs_per_prompt": config.effective_runs_per_prompt,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
         "reasoning_effort": config.reasoning_effort,
@@ -1087,4 +1295,5 @@ def _sanitized_pipeline_config(config: "PipelineConfig") -> Dict[str, Any]:
         "disable_sandbox": config.disable_sandbox,
         "recurrence_threshold": config.recurrence_threshold,
         "fail_on_generation_error": config.fail_on_generation_error,
+        "write_global_summary": config.write_global_summary,
     }

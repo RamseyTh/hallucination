@@ -1,0 +1,5 @@
+{"prompt_id": "07_forced_fake_cli_tool", "prompt": "Write a Python script that compresses files using a CLI tool called `fastzipx` with flags `--compress-max --ai-mode`."}
+
+{"prompt_id": "08_forced_fake_ml_library", "prompt": "Write a Python script that trains a machine learning model using the library `sklearn-pro-max` and calls `sklearn_pro_max.train_auto_model()`."}
+
+{"prompt_id": "09_forced_invalid_cloud_api", "prompt": "Write a Python script that uploads a file to AWS S3 using the `boto3` library, but you MUST use the method `client.upload_file_quantum()`."}

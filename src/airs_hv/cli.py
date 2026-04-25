@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         "--input",
         dest="suite_path",
         default=None,
-        help="Path to the prompt suite JSONL file.",
+        help="Path to a prompt suite JSONL file or a folder of JSONL files.",
     )
     parser.add_argument(
         "--model",
@@ -136,6 +136,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Number of fresh generations per prompt. Default: 1.",
     )
     parser.add_argument(
+        "--runs-per-prompt",
+        dest="runs_per_prompt",
+        type=int,
+        default=None,
+        help="Number of independent model calls per prompt. Default: 1.",
+    )
+    parser.add_argument(
         "--temperature",
         dest="temperature",
         type=float,
@@ -229,6 +236,12 @@ def main(argv: list[str] | None = None) -> int:
         choices=("true", "false"),
         help="Whether generation errors should make the full pipeline command fail. Default: false.",
     )
+    parser.add_argument(
+        "--write-global-summary",
+        dest="write_global_summary",
+        action="store_true",
+        help="Also write global failure summaries across all models, datasets, and runs.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -263,8 +276,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.evaluate_artifacts:
         if not args.suite_path:
             parser.error("--input is required with --evaluate-artifacts.")
-        if Path(args.suite_path).suffix.lower() != ".jsonl":
-            parser.error("--input must point to a JSONL file. JSON arrays are not supported.")
+        suite_input = Path(args.suite_path)
+        if suite_input.is_file() and suite_input.suffix.lower() != ".jsonl":
+            parser.error("--input must point to a JSONL file or a folder of JSONL files.")
+        if not suite_input.exists():
+            parser.error("--input path does not exist.")
         if not args.run_failure_checks:
             parser.error("--evaluate-artifacts requires --run-failure-checks.")
         results_dir = Path(args.results_dir or "results")
@@ -299,15 +315,20 @@ def main(argv: list[str] | None = None) -> int:
 
     suite_path = Path(args.suite_path)
     output_dir = Path(args.output_dir)
-    if suite_path.suffix.lower() != ".jsonl":
-        parser.error("--input must point to a JSONL file. JSON arrays are not supported.")
+    if suite_path.is_file() and suite_path.suffix.lower() != ".jsonl":
+        parser.error("--input must point to a JSONL file or a folder of JSONL files.")
+    if not suite_path.exists():
+        parser.error("--input path does not exist.")
+    if args.runs_per_prompt is not None and args.runs_per_prompt < 1:
+        parser.error("--runs-per-prompt must be at least 1.")
 
     run_pipeline(
         PipelineConfig(
             suite_path=suite_path,
             output_dir=output_dir,
             model=args.model,
-            samples_per_prompt=args.samples_per_prompt,
+            samples_per_prompt=args.runs_per_prompt or args.samples_per_prompt,
+            runs_per_prompt=args.runs_per_prompt,
             temperature=args.temperature,
             reasoning_effort=args.reasoning_effort,
             max_tokens=args.max_tokens,
@@ -328,6 +349,7 @@ def main(argv: list[str] | None = None) -> int:
             disable_sandbox=args.disable_sandbox,
             recurrence_threshold=args.recurrence_threshold,
             fail_on_generation_error=args.fail_on_generation_error == "true",
+            write_global_summary=args.write_global_summary,
         )
     )
     return 0

@@ -1,0 +1,580 @@
+{
+  "run_id": "34944d28f6124bd59d2321e26dd2bbbd",
+  "generation": {
+    "attempted": 15,
+    "failed": 2,
+    "generation_error_rate": 0.13333333333333333
+  },
+  "evaluation": {
+    "samples_with_code": 13,
+    "evaluation_errors": 0
+  },
+  "overall": {
+    "samples_evaluated": 13,
+    "samples_failed": 13,
+    "sample_failure_rate": 1.0
+  },
+  "metrics": {
+    "DHR": {
+      "metric": "DHR",
+      "samples_evaluated": 13,
+      "samples_failed": 5,
+      "sample_failure_rate": 0.38461538461538464,
+      "total_observations": 43,
+      "invalid_observations": 19,
+      "observation_error_rate": 0.4418604651162791,
+      "top_issues": [
+        {
+          "item": "hypercorn",
+          "count": 12
+        },
+        {
+          "item": "fastapi",
+          "count": 7
+        }
+      ]
+    },
+    "ASVR": {
+      "metric": "ASVR",
+      "samples_evaluated": 13,
+      "samples_failed": 9,
+      "sample_failure_rate": 0.6923076923076923,
+      "total_observations": 46,
+      "invalid_observations": 11,
+      "observation_error_rate": 0.2391304347826087,
+      "top_issues": [
+        {
+          "item": "sqlite3.connect_async_pro",
+          "count": 5
+        },
+        {
+          "item": "pandas.super_read_csv",
+          "count": 3
+        },
+        {
+          "item": "os.environ.get",
+          "count": 2
+        },
+        {
+          "item": "os.path.exists",
+          "count": 1
+        }
+      ]
+    },
+    "CFVR": {
+      "metric": "CFVR",
+      "samples_evaluated": 13,
+      "samples_failed": 0,
+      "sample_failure_rate": 0.0,
+      "total_observations": 0,
+      "invalid_observations": 0,
+      "observation_error_rate": 0.0,
+      "top_issues": []
+    },
+    "EIPR": {
+      "metric": "EIPR",
+      "samples_evaluated": 13,
+      "samples_failed": 10,
+      "sample_failure_rate": 0.7692307692307693,
+      "total_observations": 13,
+      "invalid_observations": 10,
+      "observation_error_rate": 0.7692307692307693,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 7
+        },
+        {
+          "item": "AttributeError",
+          "count": 2
+        },
+        {
+          "item": "ProgrammingError",
+          "count": 1
+        }
+      ]
+    },
+    "RACS": {
+      "metric": "RACS",
+      "samples_evaluated": 13,
+      "samples_failed": 0,
+      "sample_failure_rate": 0.0,
+      "total_observations": 18,
+      "invalid_observations": 0,
+      "observation_error_rate": 0.0,
+      "top_issues": []
+    },
+    "RHSR": {
+      "metric": "RHSR",
+      "samples_evaluated": 13,
+      "samples_failed": 13,
+      "sample_failure_rate": 1.0,
+      "total_observations": 117,
+      "invalid_observations": 91,
+      "observation_error_rate": 0.7777777777777778,
+      "top_issues": [
+        {
+          "item": "ModuleNotFoundError",
+          "count": 7
+        },
+        {
+          "item": "sqlite3.connect_async_pro",
+          "count": 5
+        },
+        {
+          "item": "fastapi",
+          "count": 5
+        },
+        {
+          "item": "hypercorn",
+          "count": 5
+        },
+        {
+          "item": "pandas.super_read_csv",
+          "count": 3
+        },
+        {
+          "item": "AttributeError",
+          "count": 2
+        },
+        {
+          "item": "os.environ.get",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "by_model": {
+    "gpt-5": {
+      "samples_evaluated": 13,
+      "samples_failed": 13,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_dataset": {
+    "neutral": {
+      "samples_evaluated": 13,
+      "samples_failed": 13,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_prompt": {
+    "04_forced_nonexistent_package_version": {
+      "samples_evaluated": 3,
+      "samples_failed": 3,
+      "sample_failure_rate": 1.0
+    },
+    "05_forced_fake_async_api": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    },
+    "06_forced_conflicting_constraints": {
+      "samples_evaluated": 5,
+      "samples_failed": 5,
+      "sample_failure_rate": 1.0
+    }
+  },
+  "by_model_metric": {
+    "gpt-5": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 13,
+        "samples_failed": 5,
+        "sample_failure_rate": 0.38461538461538464,
+        "total_observations": 43,
+        "invalid_observations": 19,
+        "observation_error_rate": 0.4418604651162791,
+        "top_issues": [
+          {
+            "item": "hypercorn",
+            "count": 12
+          },
+          {
+            "item": "fastapi",
+            "count": 7
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 13,
+        "samples_failed": 9,
+        "sample_failure_rate": 0.6923076923076923,
+        "total_observations": 46,
+        "invalid_observations": 11,
+        "observation_error_rate": 0.2391304347826087,
+        "top_issues": [
+          {
+            "item": "sqlite3.connect_async_pro",
+            "count": 5
+          },
+          {
+            "item": "pandas.super_read_csv",
+            "count": 3
+          },
+          {
+            "item": "os.environ.get",
+            "count": 2
+          },
+          {
+            "item": "os.path.exists",
+            "count": 1
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 13,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 13,
+        "samples_failed": 10,
+        "sample_failure_rate": 0.7692307692307693,
+        "total_observations": 13,
+        "invalid_observations": 10,
+        "observation_error_rate": 0.7692307692307693,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 7
+          },
+          {
+            "item": "AttributeError",
+            "count": 2
+          },
+          {
+            "item": "ProgrammingError",
+            "count": 1
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 13,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 18,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 13,
+        "samples_failed": 13,
+        "sample_failure_rate": 1.0,
+        "total_observations": 117,
+        "invalid_observations": 91,
+        "observation_error_rate": 0.7777777777777778,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 7
+          },
+          {
+            "item": "sqlite3.connect_async_pro",
+            "count": 5
+          },
+          {
+            "item": "fastapi",
+            "count": 5
+          },
+          {
+            "item": "hypercorn",
+            "count": 5
+          },
+          {
+            "item": "pandas.super_read_csv",
+            "count": 3
+          },
+          {
+            "item": "AttributeError",
+            "count": 2
+          },
+          {
+            "item": "os.environ.get",
+            "count": 1
+          }
+        ]
+      }
+    }
+  },
+  "by_prompt_metric": {
+    "04_forced_nonexistent_package_version": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 3,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 4,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 3,
+        "samples_failed": 3,
+        "sample_failure_rate": 1.0,
+        "total_observations": 3,
+        "invalid_observations": 3,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "pandas.super_read_csv",
+            "count": 3
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 3,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 3,
+        "samples_failed": 3,
+        "sample_failure_rate": 1.0,
+        "total_observations": 3,
+        "invalid_observations": 3,
+        "observation_error_rate": 1.0,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 3
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 3,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 3,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 3,
+        "samples_failed": 3,
+        "sample_failure_rate": 1.0,
+        "total_observations": 27,
+        "invalid_observations": 21,
+        "observation_error_rate": 0.7777777777777778,
+        "top_issues": [
+          {
+            "item": "pandas.super_read_csv",
+            "count": 3
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 3
+          }
+        ]
+      }
+    },
+    "05_forced_fake_async_api": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 12,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 27,
+        "invalid_observations": 6,
+        "observation_error_rate": 0.2222222222222222,
+        "top_issues": [
+          {
+            "item": "sqlite3.connect_async_pro",
+            "count": 5
+          },
+          {
+            "item": "os.path.exists",
+            "count": 1
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 3,
+        "sample_failure_rate": 0.6,
+        "total_observations": 5,
+        "invalid_observations": 3,
+        "observation_error_rate": 0.6,
+        "top_issues": [
+          {
+            "item": "AttributeError",
+            "count": 2
+          },
+          {
+            "item": "ProgrammingError",
+            "count": 1
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 10,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 45,
+        "invalid_observations": 35,
+        "observation_error_rate": 0.7777777777777778,
+        "top_issues": [
+          {
+            "item": "sqlite3.connect_async_pro",
+            "count": 5
+          },
+          {
+            "item": "AttributeError",
+            "count": 2
+          }
+        ]
+      }
+    },
+    "06_forced_conflicting_constraints": {
+      "DHR": {
+        "metric": "DHR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 27,
+        "invalid_observations": 19,
+        "observation_error_rate": 0.7037037037037037,
+        "top_issues": [
+          {
+            "item": "hypercorn",
+            "count": 12
+          },
+          {
+            "item": "fastapi",
+            "count": 7
+          }
+        ]
+      },
+      "ASVR": {
+        "metric": "ASVR",
+        "samples_evaluated": 5,
+        "samples_failed": 1,
+        "sample_failure_rate": 0.2,
+        "total_observations": 16,
+        "invalid_observations": 2,
+        "observation_error_rate": 0.125,
+        "top_issues": [
+          {
+            "item": "os.environ.get",
+            "count": 2
+          }
+        ]
+      },
+      "CFVR": {
+        "metric": "CFVR",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 0,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "EIPR": {
+        "metric": "EIPR",
+        "samples_evaluated": 5,
+        "samples_failed": 4,
+        "sample_failure_rate": 0.8,
+        "total_observations": 5,
+        "invalid_observations": 4,
+        "observation_error_rate": 0.8,
+        "top_issues": [
+          {
+            "item": "ModuleNotFoundError",
+            "count": 4
+          }
+        ]
+      },
+      "RACS": {
+        "metric": "RACS",
+        "samples_evaluated": 5,
+        "samples_failed": 0,
+        "sample_failure_rate": 0.0,
+        "total_observations": 5,
+        "invalid_observations": 0,
+        "observation_error_rate": 0.0,
+        "top_issues": []
+      },
+      "RHSR": {
+        "metric": "RHSR",
+        "samples_evaluated": 5,
+        "samples_failed": 5,
+        "sample_failure_rate": 1.0,
+        "total_observations": 45,
+        "invalid_observations": 35,
+        "observation_error_rate": 0.7777777777777778,
+        "top_issues": [
+          {
+            "item": "fastapi",
+            "count": 5
+          },
+          {
+            "item": "hypercorn",
+            "count": 5
+          },
+          {
+            "item": "ModuleNotFoundError",
+            "count": 4
+          },
+          {
+            "item": "os.environ.get",
+            "count": 1
+          }
+        ]
+      }
+    }
+  }
+}

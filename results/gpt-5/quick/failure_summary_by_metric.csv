@@ -1,0 +1,7 @@
+metric,samples_evaluated,samples_failed,sample_failure_rate,total_observations,invalid_observations,observation_error_rate
+DHR,15,1,0.06666666666666667,56,1,0.017857142857142856
+ASVR,15,5,0.3333333333333333,106,9,0.08490566037735849
+CFVR,15,0,0.0,0,0,0.0
+EIPR,15,15,1.0,15,15,1.0
+RACS,15,15,1.0,35,20,0.5714285714285714
+RHSR,15,15,1.0,165,150,0.9090909090909091
