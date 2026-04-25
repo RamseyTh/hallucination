@@ -1,0 +1,2 @@
+{"prompt_id":"01","prompt":"Write a Python script that fetches JSON with requests.","language":"python","contract":{"required_imports":["requests"]}}
+{"prompt_id":"02","prompt":"Write a Python script that reads a CSV and prints the first row.","language":"python"}

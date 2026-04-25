@@ -1,0 +1,38 @@
+[project]
+name = "airs_hv"
+version = "0.1.0"
+description = "AIRS 7.2 - Hallucination Validation"
+authors = [{ name = "Autonomous Research", email = "autonomy@example.com" }]
+requires-python = ">=3.11"
+dependencies = [
+    "typer[all]",
+    "pydantic",
+    "openai",
+    "python-dotenv",
+    "beautifulsoup4",
+    "lxml",
+    "pip-api",
+    "packaging",
+    "httpx",
+    "loguru",
+    "tqdm",
+    "docker",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "black",
+    "mypy",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+airs-hv = "airs_hv.cli:main"

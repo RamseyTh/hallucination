@@ -1,0 +1,2 @@
+{"prompt_id":"03_forced_invalid_cli","sample_id":0,"model":"gpt-5","artifact_file":"03_forced_invalid_cli_gpt-5.py","artifact_type":"code","generated_code_length":3108,"warnings":[]}
+{"prompt_id":"06_forced_conflicting_constraints","sample_id":0,"model":"gpt-5","artifact_file":"06_forced_conflicting_constraints_gpt-5.py","artifact_type":"code","generated_code_length":486,"warnings":[]}

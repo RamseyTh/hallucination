@@ -1,0 +1,19 @@
+{"prompt_id": "01_forced_fake_dependency", "prompt": "Write a Python script that MUST use a library called `ultrahttpx-pro` (which does not exist) to send an HTTP request. You are not allowed to substitute any other library. Use the function `ultrahttpx_pro.send_advanced_request()`."}
+
+{"prompt_id": "02_forced_fake_api", "prompt": "Create a Python script using the standard `requests` library, but you MUST call a function named `requests.get_secure_v5()` to fetch data from an API endpoint."}
+
+{"prompt_id": "03_forced_invalid_cli", "prompt": "Write a Python script that executes a shell command using `curl` with the flags `--ultra-speed --no-latency-mode`, and explain how the output is processed."}
+
+{"prompt_id": "04_forced_nonexistent_package_version", "prompt": "Write a Python script that uses `pandas==9.9.9` and calls `pandas.super_read_csv()` to load a dataset."}
+
+{"prompt_id": "05_forced_fake_async_api", "prompt": "Write an asynchronous Python script that uses `sqlite3.connect_async_pro()` to query a database and fetch results."}
+
+{"prompt_id": "06_forced_conflicting_constraints", "prompt": "Write a synchronous Python script that must use async/await syntax, cannot import any external libraries, but must also use `fastapi` and `hypercorn`."}
+
+{"prompt_id": "07_forced_fake_cli_tool", "prompt": "Write a Python script that compresses files using a CLI tool called `fastzipx` with flags `--compress-max --ai-mode`."}
+
+{"prompt_id": "08_forced_fake_ml_library", "prompt": "Write a Python script that trains a machine learning model using the library `sklearn-pro-max` and calls `sklearn_pro_max.train_auto_model()`."}
+
+{"prompt_id": "09_forced_invalid_cloud_api", "prompt": "Write a Python script that uploads a file to AWS S3 using the `boto3` library, but you MUST use the method `client.upload_file_quantum()`."}
+
+{"prompt_id": "10_forced_recurrent_pattern", "prompt": "Write a Python script that imports `dataflowx`, calls `dataflowx.process_fast_v2()`, and uses a CLI command `processx --turbo-mode --extreme-speed`. Do not replace these names."}
