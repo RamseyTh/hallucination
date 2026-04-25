@@ -126,6 +126,12 @@ class PipelineConfig:
     skip_urls: bool = False
     save_code: bool = False
     save_raw_output: bool = False
+    run_failure_checks: bool = False
+    results_dir: Optional[Path] = None
+    evaluate_artifacts: Optional[Path] = None
+    disable_sandbox: bool = False
+    recurrence_threshold: int = 2
+    fail_on_generation_error: bool = False
 
     @property
     def store_artifacts(self) -> bool:

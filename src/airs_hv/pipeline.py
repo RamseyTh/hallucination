@@ -31,6 +31,10 @@ from .failure_checks import (
     run_failure_checks,
 )
 from .generator import build_model_client, resolve_model_selection
+from .hallucination_checks import (
+    evaluate_samples_and_write_outputs,
+    run_adversarial_self_checks as run_hallucination_adversarial_self_checks,
+)
 from .trace import TraceLogger, _json_default as trace_json_default, summarize_sample_for_trace
 
 if TYPE_CHECKING:
@@ -72,6 +76,12 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
         )
 
     adversarial_checks = _run_adversarial_injection_checks()
+    hallucination_adversarial_checks = None
+    if config.run_failure_checks:
+        hallucination_adversarial_checks = run_hallucination_adversarial_self_checks(
+            recurrence_threshold=config.recurrence_threshold,
+            disable_sandbox=False,
+        )
     clients = {
         model_alias: build_model_client(model_alias, _build_model_client_config(config))
         for model_alias in selected_models
@@ -88,6 +98,11 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
         "Adversarial self-checks passed: "
         f"{adversarial_checks['total_cases']} injected case(s)"
     )
+    if hallucination_adversarial_checks:
+        print(
+            "Hallucination failure self-checks passed: "
+            f"{hallucination_adversarial_checks['total_cases']} injected case(s)"
+        )
     print(f"Selected models: {selected_models}")
     if config.gateway_model_override:
         print(f"Gateway model override: {config.gateway_model_override}")
@@ -153,6 +168,26 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
         prompt_load_stats=prompt_load_stats,
         adversarial_checks=adversarial_checks,
     )
+    if hallucination_adversarial_checks:
+        report["hallucination_adversarial_checks"] = hallucination_adversarial_checks
+    failure_check_outputs = None
+    if config.run_failure_checks:
+        results_dir = Path(config.results_dir) if config.results_dir else output_dir / "results"
+        failure_check_outputs = evaluate_samples_and_write_outputs(
+            samples=all_samples,
+            generation_errors=execution_errors,
+            results_dir=results_dir,
+            recurrence_threshold=config.recurrence_threshold,
+            disable_sandbox=config.disable_sandbox or config.skip_dynamic,
+            run_id=run_id,
+        )
+        report["failure_check_outputs"] = {
+            "results_dir": failure_check_outputs["results_dir"],
+            "failure_checks_jsonl": failure_check_outputs["failure_checks_jsonl"],
+            "failure_summary_json": failure_check_outputs["failure_summary_json"],
+            "records_evaluated": failure_check_outputs["records_evaluated"],
+            "generation_errors": failure_check_outputs["generation_errors"],
+        }
     report_path = output_dir / "report.jsonl"
     _write_jsonl_object(report_path, report)
 
@@ -170,11 +205,20 @@ def run_pipeline(config: "PipelineConfig") -> Dict[str, Any]:
     print("\nPipeline complete.")
     print(f"  Trace:  {trace_logger.path}")
     print(f"  Report: {report_path}")
+    if failure_check_outputs:
+        print(f"  Failure checks: {failure_check_outputs['failure_checks_jsonl']}")
+        print(f"  Failure summary: {failure_check_outputs['failure_summary_json']}")
     print(f"  Models: {selected_models}")
     print(
         f"  samples={report['total_samples']} "
         f"failures={report['total_failures']} errors={report['total_errors']}"
     )
+
+    if config.fail_on_generation_error and execution_errors:
+        raise RuntimeError(
+            f"Generation failed for {len(execution_errors)} sample(s); "
+            "failure-check outputs were written before stopping."
+        )
 
     return report
 
@@ -1037,4 +1081,10 @@ def _sanitized_pipeline_config(config: "PipelineConfig") -> Dict[str, Any]:
         "skip_urls": config.skip_urls,
         "save_code": config.save_code,
         "save_raw_output": config.save_raw_output,
+        "run_failure_checks": config.run_failure_checks,
+        "results_dir": str(config.results_dir) if config.results_dir else None,
+        "evaluate_artifacts": str(config.evaluate_artifacts) if config.evaluate_artifacts else None,
+        "disable_sandbox": config.disable_sandbox,
+        "recurrence_threshold": config.recurrence_threshold,
+        "fail_on_generation_error": config.fail_on_generation_error,
     }

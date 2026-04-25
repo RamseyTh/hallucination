@@ -20,6 +20,7 @@ from .generator import (
     write_gateway_model_map,
     write_resolved_gateway_model_map,
 )
+from .hallucination_checks import evaluate_artifact_directory, run_adversarial_self_checks
 from .pipeline import run_pipeline
 from .schema import PipelineConfig
 
@@ -190,6 +191,44 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Skip URL-related validation checks where supported.",
     )
+    parser.add_argument(
+        "--run-failure-checks",
+        dest="run_failure_checks",
+        action="store_true",
+        help="Write hallucination failure-check JSONL/CSV summaries.",
+    )
+    parser.add_argument(
+        "--results-dir",
+        dest="results_dir",
+        default=None,
+        help="Directory for failure-check outputs. Default: <output-dir>/results or ./results.",
+    )
+    parser.add_argument(
+        "--evaluate-artifacts",
+        dest="evaluate_artifacts",
+        default=None,
+        help="Evaluate saved .py artifacts in a directory without running generation.",
+    )
+    parser.add_argument(
+        "--disable-sandbox",
+        dest="disable_sandbox",
+        action="store_true",
+        help="Disable Docker execution for EIPR in the new failure-check report.",
+    )
+    parser.add_argument(
+        "--recurrence-threshold",
+        dest="recurrence_threshold",
+        type=int,
+        default=2,
+        help="Minimum repeated invalid item count for RHSR. Default: 2.",
+    )
+    parser.add_argument(
+        "--fail-on-generation-error",
+        dest="fail_on_generation_error",
+        default="false",
+        choices=("true", "false"),
+        help="Whether generation errors should make the full pipeline command fail. Default: false.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -221,8 +260,36 @@ def main(argv: list[str] | None = None) -> int:
     if args.smoke_test or args.smoke_test_all:
         return _handle_smoke_tests(parser, args, generator_config)
 
+    if args.evaluate_artifacts:
+        if not args.suite_path:
+            parser.error("--input is required with --evaluate-artifacts.")
+        if Path(args.suite_path).suffix.lower() != ".jsonl":
+            parser.error("--input must point to a JSONL file. JSON arrays are not supported.")
+        if not args.run_failure_checks:
+            parser.error("--evaluate-artifacts requires --run-failure-checks.")
+        results_dir = Path(args.results_dir or "results")
+        self_checks = run_adversarial_self_checks(
+            recurrence_threshold=args.recurrence_threshold,
+            disable_sandbox=False,
+        )
+        print(
+            "Hallucination failure self-checks passed: "
+            f"{self_checks['total_cases']} injected case(s)"
+        )
+        outputs = evaluate_artifact_directory(
+            artifact_dir=Path(args.evaluate_artifacts),
+            prompts_path=Path(args.suite_path),
+            results_dir=results_dir,
+            recurrence_threshold=args.recurrence_threshold,
+            disable_sandbox=args.disable_sandbox or args.skip_dynamic,
+        )
+        print(f"Evaluated saved artifacts: {outputs['records_evaluated']}")
+        print(f"Failure checks: {outputs['failure_checks_jsonl']}")
+        print(f"Failure summary: {outputs['failure_summary_json']}")
+        return 0
+
     if not args.model:
-        parser.error("--model is required unless --list-gateway-models is used.")
+        parser.error("--model is required unless discovery, smoke testing, or --evaluate-artifacts is used.")
     if args.gateway_model_override and (args.model.strip().lower() == "all" or "," in args.model):
         parser.error("--gateway-model can only be used with a single model alias.")
     if not args.suite_path:
@@ -255,6 +322,12 @@ def main(argv: list[str] | None = None) -> int:
             skip_urls=args.skip_urls,
             save_code=args.save_code,
             save_raw_output=args.save_raw_output,
+            run_failure_checks=args.run_failure_checks,
+            results_dir=Path(args.results_dir) if args.results_dir else None,
+            evaluate_artifacts=Path(args.evaluate_artifacts) if args.evaluate_artifacts else None,
+            disable_sandbox=args.disable_sandbox,
+            recurrence_threshold=args.recurrence_threshold,
+            fail_on_generation_error=args.fail_on_generation_error == "true",
         )
     )
     return 0

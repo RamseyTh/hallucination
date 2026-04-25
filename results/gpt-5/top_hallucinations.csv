@@ -1,0 +1,21 @@
+category,item,count
+EIPR,ModuleNotFoundError,5
+RACS,must use CLI command python,3
+EIPR,RuntimeError,2
+ASVR,os.environ.get,2
+DHR,hypercorn,2
+ASVR,boto3.session.Session,2
+RACS,must use library called,1
+RACS,must define function ultrahttpx_pro,1
+ASVR,requests.get_secure_v5,1
+RACS,must define function requests,1
+EIPR,CommandNotFound,1
+ASVR,pandas.super_read_csv,1
+ASVR,sqlite3.connect_async_pro,1
+EIPR,AttributeError,1
+DHR,fastapi,1
+DHR,sklearn_pro_max,1
+DHR,botocore,1
+ASVR,os.path.isfile,1
+DHR,dataflowx,1
+CFVR,processx,1

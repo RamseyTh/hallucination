@@ -230,6 +230,83 @@ def test_full_run_accepts_gateway_model_map_and_save_code(monkeypatch, tmp_path)
     assert captured["gateway_model_map_path"] == Path(model_map)
 
 
+def test_full_run_passes_failure_check_options(monkeypatch, tmp_path):
+    suite_path = tmp_path / "prompts.jsonl"
+    suite_path.write_text('{"prompt_id":"01","prompt":"Write code"}\n', encoding="utf-8")
+    output_dir = tmp_path / "out"
+    results_dir = tmp_path / "results"
+    captured = {}
+
+    def fake_run_pipeline(config):
+        captured["run_failure_checks"] = config.run_failure_checks
+        captured["results_dir"] = config.results_dir
+        captured["disable_sandbox"] = config.disable_sandbox
+        captured["recurrence_threshold"] = config.recurrence_threshold
+        captured["fail_on_generation_error"] = config.fail_on_generation_error
+        return {}
+
+    monkeypatch.setattr(cli_module, "run_pipeline", fake_run_pipeline)
+
+    exit_code = cli_module.main(
+        [
+            "--model",
+            "gpt-5",
+            "--input",
+            str(suite_path),
+            "--output-dir",
+            str(output_dir),
+            "--run-failure-checks",
+            "--results-dir",
+            str(results_dir),
+            "--disable-sandbox",
+            "--recurrence-threshold",
+            "3",
+            "--fail-on-generation-error",
+            "true",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["run_failure_checks"] is True
+    assert captured["results_dir"] == results_dir
+    assert captured["disable_sandbox"] is True
+    assert captured["recurrence_threshold"] == 3
+    assert captured["fail_on_generation_error"] is True
+
+
+def test_evaluate_artifacts_cli_writes_results(monkeypatch, tmp_path, capsys):
+    artifact_dir = tmp_path / "outputs"
+    artifact_dir.mkdir()
+    (artifact_dir / "01_gpt-5.py").write_text("import json\n", encoding="utf-8")
+    suite_path = tmp_path / "prompts.jsonl"
+    suite_path.write_text('{"prompt_id":"01","prompt":"Write code"}\n', encoding="utf-8")
+    results_dir = tmp_path / "results"
+
+    monkeypatch.setattr(
+        cli_module,
+        "run_adversarial_self_checks",
+        lambda **kwargs: {"status": "pass", "total_cases": 6},
+    )
+
+    exit_code = cli_module.main(
+        [
+            "--evaluate-artifacts",
+            str(artifact_dir),
+            "--input",
+            str(suite_path),
+            "--run-failure-checks",
+            "--results-dir",
+            str(results_dir),
+            "--disable-sandbox",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Evaluated saved artifacts: 1" in output
+    assert (results_dir / "failure_checks.jsonl").exists()
+
+
 def test_probe_model_alias_uses_builtin_candidates(monkeypatch, capsys):
     captured = {}
 
