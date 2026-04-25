@@ -168,3 +168,4 @@ python run_pipeline.py \
 ### Markdown or explanations in generated code
 
 The generator instructs models to output only Python code. The validator strips plain markdown fences, rejects obvious explanation wrappers, and does not rewrite code logic.
+# hallucination
