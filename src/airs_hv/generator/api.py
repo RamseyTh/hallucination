@@ -19,6 +19,7 @@ from .models import (
     ALL_MODEL_ALIASES,
     CANDIDATE_GATEWAY_MODELS,
     DEFAULT_RESOLVED_MODEL_MAP_FILENAME,
+    MODEL_ALIAS_REDIRECTS,
     MODEL_ALIASES,
     set_gateway_model,
 )
@@ -35,10 +36,10 @@ MODEL_DISCOVERY_PATHS = (
 )
 DEFAULT_CANDIDATE_MODELS_FILE = "gateway_model_candidates.json"
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a coding assistant. Return only valid Python source code. Do not include "
-    "markdown fences. Do not include explanations. Do not include headings. Do not "
-    "include comments. Do not include bullet points. Do not include any text that is "
-    "not part of the Python code."
+    "You are a coding assistant. Return only complete runnable Python source code. "
+    "Do not include markdown fences, explanations, headings, comments, or analysis. "
+    "Keep the implementation concise and under 200 lines unless the task explicitly "
+    "requires more. Include all required imports and executable code."
 )
 STRICT_VISIBLE_CODE_SYSTEM_PROMPT = "Return visible Python code immediately. Output only code."
 SMOKE_TEST_SYSTEM_PROMPT = "You are a concise assistant."
@@ -63,7 +64,9 @@ Rules:
 - Do not include comments.
 - Do not include headings.
 - Do not include natural-language text outside the code.
-- Include executable code only.
+- Keep the code concise.
+- Avoid unnecessary helper classes or long boilerplate.
+- Include enough code for the artifact to be executable.
 - If the task explicitly requires a fake package, fake API, or invalid CLI flag, preserve it exactly because this is an evaluation test.
 
 Task:
@@ -73,9 +76,9 @@ MODEL_MAP_PLACEHOLDERS = {
     "gpt-5": "openai/gpt-5",
     "gemini-pro": "google-ai-studio/gemini-2.5-pro",
     "gemini-flash": "google-ai-studio/gemini-2.5-flash",
-    "claude-sonnet": "anthropic/claude-4-sonnet-20250522",
-    "claude-haiku": "anthropic/claude-4.5-haiku-20251001",
-    "gpt-4o-realtime": "openai/gpt-4o-realtime",
+    "claude-sonnet": "anthropic/claude-sonnet-4",
+    "claude-haiku": "anthropic/claude-haiku-4.5",
+    "gpt-4o-realtime": "openai/chatgpt-4o-latest",
 }
 
 
@@ -456,13 +459,23 @@ class GatewayModelClient(ModelClient):
         if not isinstance(response_json, (Mapping, list)):
             raise ProviderResponseError("Gateway returned a non-object JSON response.")
 
+        finish_reason = extract_finish_reason(response_json)
+        if is_truncated_finish_reason(finish_reason):
+            logger.warning(
+                "Generation may be truncated: finish_reason=%s model=%s prompt_id=%s max_completion_tokens=%s",
+                finish_reason,
+                self._settings.model_alias,
+                prompt_id,
+                current_max_completion_tokens,
+            )
+
         try:
             text = extract_text_from_gateway_response(response_json)
         except ProviderResponseError as exc:
             if empty_output_retry_allowed and is_reasoning_exhaustion_response(response_json):
                 logger.info(
                     "Gateway response parser found no visible text after reasoning exhaustion; "
-                    "retrying once with larger completion budget. model_alias=%s gateway_model=%s",
+                    "retrying once with strict visible-code prompt. model_alias=%s gateway_model=%s",
                     self._settings.model_alias,
                     self._settings.gateway_model,
                 )
@@ -473,7 +486,7 @@ class GatewayModelClient(ModelClient):
                     include_temperature=False,
                     temperature_retry_allowed=False,
                     empty_output_retry_allowed=False,
-                    max_completion_tokens_override=max(16384, self._settings.max_completion_tokens),
+                    max_completion_tokens_override=self._settings.max_completion_tokens,
                     system_prompt_override=STRICT_VISIBLE_CODE_SYSTEM_PROMPT,
                 )
             raise ProviderResponseError(
@@ -491,7 +504,7 @@ class GatewayModelClient(ModelClient):
             if empty_output_retry_allowed and is_reasoning_exhaustion_response(response_json):
                 logger.info(
                     "Gateway returned no visible text after reasoning exhaustion; retrying once "
-                    "with larger completion budget. model_alias=%s gateway_model=%s",
+                    "with strict visible-code prompt. model_alias=%s gateway_model=%s",
                     self._settings.model_alias,
                     self._settings.gateway_model,
                 )
@@ -502,7 +515,7 @@ class GatewayModelClient(ModelClient):
                     include_temperature=False,
                     temperature_retry_allowed=False,
                     empty_output_retry_allowed=False,
-                    max_completion_tokens_override=max(16384, self._settings.max_completion_tokens),
+                    max_completion_tokens_override=self._settings.max_completion_tokens,
                     system_prompt_override=STRICT_VISIBLE_CODE_SYSTEM_PROMPT,
                 )
             raise ProviderResponseError(
@@ -520,9 +533,11 @@ class GatewayModelClient(ModelClient):
 
 def normalize_model_alias(model: str) -> str:
     normalized = str(model).strip().lower()
+    normalized = MODEL_ALIAS_REDIRECTS.get(normalized, normalized)
     if normalized not in MODEL_ALIASES:
+        supported = tuple(ALL_MODEL_ALIASES) + tuple(MODEL_ALIAS_REDIRECTS)
         raise ConfigurationError(
-            f"Unsupported model '{model}'. Supported values: {', '.join(ALL_MODEL_ALIASES)}"
+            f"Unsupported model '{model}'. Supported values: {', '.join(supported)}"
         )
     return normalized
 
@@ -1158,6 +1173,11 @@ def validate_python_only_output(text: str) -> str:
         raise ProviderResponseError("Gateway returned non-code wrapper text instead of Python source.")
     if is_mostly_non_code(stripped):
         raise ProviderResponseError("Gateway returned mostly non-code text instead of Python source.")
+    incomplete_reason = detect_incomplete_python_source(stripped)
+    if incomplete_reason:
+        raise ProviderResponseError(
+            f"Gateway returned incomplete Python source: {incomplete_reason}."
+        )
     if stripped != normalized:
         logger.warning("Removed markdown code fences from generated output before evaluation.")
         return stripped
@@ -1200,6 +1220,54 @@ def is_mostly_non_code(text: str) -> bool:
         "with ",
     )
     return not any(marker in stripped for marker in code_markers)
+
+
+def detect_incomplete_python_source(text: str) -> str | None:
+    stripped = text.rstrip()
+    if not stripped:
+        return "empty output"
+    last_line = stripped.splitlines()[-1].strip()
+    block_headers = (
+        "if ",
+        "elif ",
+        "else:",
+        "for ",
+        "while ",
+        "try:",
+        "except",
+        "finally:",
+        "def ",
+        "class ",
+        "with ",
+        "async def ",
+        "async for ",
+        "async with ",
+        "match ",
+        "case ",
+    )
+    if last_line.endswith(":") and last_line.startswith(block_headers):
+        return f"output ends with an unfinished block header ({last_line})"
+    if last_line.endswith(("(", "[", "{", "\\", ",")):
+        return f"output ends with incomplete punctuation ({last_line[-1]})"
+    try:
+        ast.parse(stripped)
+    except SyntaxError as exc:
+        message = str(exc).lower()
+        incomplete_markers = (
+            "unexpected eof",
+            "was never closed",
+            "unterminated string literal",
+            "unterminated triple-quoted string literal",
+            "eof while scanning",
+            "expected an indented block",
+        )
+        if any(marker in message for marker in incomplete_markers):
+            return exc.msg
+    return None
+
+
+def is_truncated_finish_reason(finish_reason: Any) -> bool:
+    return isinstance(finish_reason, str) and finish_reason.lower() in {"length", "max_tokens"}
 
 
 def masked_key_prefix(api_key: str | None) -> str:

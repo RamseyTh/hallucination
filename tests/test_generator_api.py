@@ -34,9 +34,27 @@ EXPECTED_STABLE_MODELS = {
     "gpt-5": "openai/gpt-5",
     "gemini-pro": "google-ai-studio/gemini-2.5-pro",
     "gemini-flash": "google-ai-studio/gemini-2.5-flash",
-    "claude-sonnet": "anthropic/claude-4-sonnet-20250522",
-    "claude-haiku": "anthropic/claude-4.5-haiku-20251001",
-    "gpt-4o-realtime": "openai/gpt-4o-realtime",
+    "claude-sonnet": "anthropic/claude-sonnet-4",
+    "claude-haiku": "anthropic/claude-haiku-4.5",
+    "gpt-4o-realtime": "openai/chatgpt-4o-latest",
+}
+
+PREVIOUS_GENERATION_TOKEN_LIMITS = {
+    "gpt-5": 8192,
+    "gemini-pro": 4096,
+    "gemini-flash": 4096,
+    "claude-sonnet": 4096,
+    "claude-haiku": 4096,
+    "gpt-4o-realtime": 4096,
+}
+
+EXPECTED_GENERATION_TOKEN_LIMITS = {
+    "gpt-5": 12288,
+    "gemini-pro": 6144,
+    "gemini-flash": 6144,
+    "claude-sonnet": 6144,
+    "claude-haiku": 6144,
+    "gpt-4o-realtime": 6144,
 }
 
 
@@ -74,9 +92,22 @@ def test_gemini_mappings_remain_verified():
     assert resolve_gateway_model("gemini-flash") == "google-ai-studio/gemini-2.5-flash"
 
 
-def test_all_verified_gateway_mappings_use_provider_qualified_ids():
+def test_generation_token_defaults_increase_by_no_more_than_half():
+    for alias, expected_limit in EXPECTED_GENERATION_TOKEN_LIMITS.items():
+        previous_limit = PREVIOUS_GENERATION_TOKEN_LIMITS[alias]
+        assert MODEL_ALIASES[alias]["generation_max_completion_tokens"] == expected_limit
+        assert expected_limit <= int(previous_limit * 1.5)
+        assert MODEL_ALIASES[alias]["smoke_max_completion_tokens"] == 256
+
+
+def test_all_verified_gateway_mappings_use_verified_gateway_ids():
     for alias, gateway_model in EXPECTED_STABLE_MODELS.items():
         assert resolve_gateway_model(alias) == gateway_model
+
+
+def test_gpt4o_compatibility_aliases_resolve_to_latest_gateway_model():
+    assert resolve_gateway_model("gpt-4o") == "openai/chatgpt-4o-latest"
+    assert resolve_gateway_model("chatgpt-4o-latest") == "openai/chatgpt-4o-latest"
 
 
 def test_gateway_model_map_can_override_builtins(tmp_path):
@@ -84,18 +115,18 @@ def test_gateway_model_map_can_override_builtins(tmp_path):
     model_map_path.write_text(
         """
         {
-          "claude-sonnet": "anthropic/claude-4-sonnet-20250522",
-          "gpt-4o-realtime": "openai/gpt-4o-realtime"
+          "claude-sonnet": "custom/claude-sonnet",
+          "gpt-4o": "custom/gpt-4o"
         }
         """.strip(),
         encoding="utf-8",
     )
 
     assert resolve_gateway_model("claude-sonnet", gateway_model_map_path=str(model_map_path)) == (
-        "anthropic/claude-4-sonnet-20250522"
+        "custom/claude-sonnet"
     )
     assert resolve_gateway_model("gpt-4o-realtime", gateway_model_map_path=str(model_map_path)) == (
-        "openai/gpt-4o-realtime"
+        "custom/gpt-4o"
     )
 
 
@@ -162,10 +193,15 @@ def test_generate_payload_uses_resolved_gateway_model_id(monkeypatch):
 
     assert code == "print('gateway')\n"
     assert captured["payload"]["model"] == "google-ai-studio/gemini-2.5-pro"
+    assert captured["payload"]["max_completion_tokens"] == 256
     assert "reasoning_effort" not in captured["payload"]
     assert captured["payload"]["messages"][0]["content"].startswith("You are a coding assistant.")
     assert "Do not include markdown fences" in captured["payload"]["messages"][0]["content"]
+    assert "complete runnable Python source code" in captured["payload"]["messages"][0]["content"]
+    assert "under 200 lines" in captured["payload"]["messages"][0]["content"]
     assert "Generate a complete Python script for the task below." in captured["payload"]["messages"][1]["content"]
+    assert "Keep the code concise." in captured["payload"]["messages"][1]["content"]
+    assert "Avoid unnecessary helper classes or long boilerplate." in captured["payload"]["messages"][1]["content"]
     assert "If the task explicitly requires a fake package" in captured["payload"]["messages"][1]["content"]
 
 
@@ -188,7 +224,7 @@ def test_gpt5_generate_payload_omits_temperature_by_default(monkeypatch):
     )
 
     assert captured["payload"]["model"] == "openai/gpt-5"
-    assert captured["payload"]["max_completion_tokens"] == 8192
+    assert captured["payload"]["max_completion_tokens"] == 12288
     assert "temperature" not in captured["payload"]
     assert captured["payload"]["reasoning_effort"] == "low"
 
@@ -211,8 +247,8 @@ def test_non_reasoning_models_use_model_specific_generation_defaults(monkeypatch
         config={"retries": 1},
     )
 
-    assert captured["payload"]["model"] == "anthropic/claude-4-sonnet-20250522"
-    assert captured["payload"]["max_completion_tokens"] == 4096
+    assert captured["payload"]["model"] == "anthropic/claude-sonnet-4"
+    assert captured["payload"]["max_completion_tokens"] == 6144
     assert "reasoning_effort" not in captured["payload"]
 
 
@@ -460,6 +496,36 @@ def test_python_output_validator_rejects_non_code_wrappers():
         validate_python_only_output("Here is the script:\nprint('hi')\n")
 
 
+def test_python_output_validator_detects_incomplete_code_without_patching():
+    incomplete = "def main():\n    print('ready')\nif True:"
+
+    with pytest.raises(GenerationError, match="incomplete Python source"):
+        validate_python_only_output(incomplete)
+
+
+def test_generation_logs_truncated_finish_reason(monkeypatch, caplog):
+    def fake_post(url, *, headers, json, timeout):
+        return FakeResponse(
+            body={
+                "choices": [
+                    {
+                        "message": {"content": "print('done')\n"},
+                        "finish_reason": "length",
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setenv("GATEWAY_KEY", "gateway-test-key")
+    monkeypatch.setattr(gateway_module.requests, "post", fake_post)
+    caplog.set_level(logging.WARNING)
+
+    assert generate_code("Write a short script.", "gemini-flash", {"retries": 1}) == "print('done')\n"
+
+    assert "Generation may be truncated: finish_reason=length model=gemini-flash" in caplog.text
+    assert "max_completion_tokens=6144" in caplog.text
+
+
 def test_empty_response_error_includes_diagnostics():
     with pytest.raises(GenerationError, match="top_level_keys="):
         extract_text_from_gateway_response(
@@ -483,7 +549,7 @@ def test_model_required_for_policy_enforcement_triggers_candidate_probing(monkey
                 body={"error": "MODEL_REQUIRED_FOR_POLICY_ENFORCEMENT"},
                 text='{"error":"MODEL_REQUIRED_FOR_POLICY_ENFORCEMENT"}',
             )
-        if json["model"] == "anthropic/claude-4-sonnet-20250522":
+        if json["model"] == "anthropic/claude-sonnet-4":
             return FakeResponse(body={"choices": [{"message": {"content": "OK"}}]})
         raise AssertionError(f"Unexpected model {json['model']}")
 
@@ -494,13 +560,13 @@ def test_model_required_for_policy_enforcement_triggers_candidate_probing(monkey
     results = smoke_test_models("claude-sonnet", {"auto_repair_policy_models": True})
 
     assert results[0]["status"] == "pass"
-    assert results[0]["gateway_model"] == "anthropic/claude-4-sonnet-20250522"
+    assert results[0]["gateway_model"] == "anthropic/claude-sonnet-4"
     assert captured_models == [
         "claude-4-sonnet-20250522",
-        "anthropic/claude-4-sonnet-20250522",
+        "anthropic/claude-sonnet-4",
     ]
-    assert "Trying candidate model_alias=claude-sonnet candidate_gateway_model=anthropic/claude-4-sonnet-20250522" in caplog.text
-    assert "Candidate passed model_alias=claude-sonnet gateway_model=anthropic/claude-4-sonnet-20250522" in caplog.text
+    assert "Trying candidate model_alias=claude-sonnet candidate_gateway_model=anthropic/claude-sonnet-4" in caplog.text
+    assert "Candidate passed model_alias=claude-sonnet gateway_model=anthropic/claude-sonnet-4" in caplog.text
 
 
 def test_smoke_test_all_does_not_send_bare_gpt5_and_repairs_policy_models(monkeypatch):
@@ -510,9 +576,9 @@ def test_smoke_test_all_does_not_send_bare_gpt5_and_repairs_policy_models(monkey
         "openai/gpt-5",
         "google-ai-studio/gemini-2.5-pro",
         "google-ai-studio/gemini-2.5-flash",
-        "anthropic/claude-4-sonnet-20250522",
-        "anthropic/claude-4.5-haiku-20251001",
-        "openai/gpt-4o-realtime",
+        "anthropic/claude-sonnet-4",
+        "anthropic/claude-haiku-4.5",
+        "openai/chatgpt-4o-latest",
     }
 
     def fake_post(url, *, headers, json, timeout):
@@ -533,9 +599,9 @@ def test_smoke_test_all_does_not_send_bare_gpt5_and_repairs_policy_models(monkey
         "openai/gpt-5",
         "google-ai-studio/gemini-2.5-pro",
         "google-ai-studio/gemini-2.5-flash",
-        "anthropic/claude-4-sonnet-20250522",
-        "anthropic/claude-4.5-haiku-20251001",
-        "openai/gpt-4o-realtime",
+        "anthropic/claude-sonnet-4",
+        "anthropic/claude-haiku-4.5",
+        "openai/chatgpt-4o-latest",
     ]
     assert [result["gateway_model"] for result in results] == captured_models
 
@@ -556,6 +622,7 @@ def test_probe_gateway_models_classifies_results(monkeypatch):
             body={"error": [{"code": 2008, "message": "Invalid provider"}]},
             text='{"error":[{"code":2008,"message":"Invalid provider"}]}',
         ),
+        "anthropic/claude-sonnet-4": FakeResponse(body={"choices": [{"message": {"content": "OK"}}]}),
         "claude-4-sonnet-20250522": FakeResponse(
             status_code=400,
             reason="Bad Request",
@@ -579,7 +646,7 @@ def test_probe_gateway_models_classifies_results(monkeypatch):
         {
             "gpt-5": ["openai/gpt-5"],
             "gemini-pro": ["google-ai-studio/gemini-2.5-pro", "bad/provider-model"],
-            "claude-sonnet": ["claude-4-sonnet-20250522", "anthropic/claude-4-sonnet-20250522"],
+            "claude-sonnet": ["anthropic/claude-sonnet-4", "claude-4-sonnet-20250522", "anthropic/claude-4-sonnet-20250522"],
         },
         {},
     )
@@ -587,8 +654,9 @@ def test_probe_gateway_models_classifies_results(monkeypatch):
     assert results["gpt-5"][0]["status"] == "pass"
     assert results["gemini-pro"][0]["status"] == "model_not_allowed"
     assert results["gemini-pro"][1]["status"] == "invalid_provider"
-    assert results["claude-sonnet"][0]["status"] == "model_required_for_policy"
-    assert results["claude-sonnet"][1]["status"] == "upstream_provider_auth_error"
+    assert results["claude-sonnet"][0]["status"] == "pass"
+    assert results["claude-sonnet"][1]["status"] == "model_required_for_policy"
+    assert results["claude-sonnet"][2]["status"] == "upstream_provider_auth_error"
 
 
 def test_fix_model_map_writer_writes_only_successful_models(tmp_path):
@@ -600,9 +668,9 @@ def test_fix_model_map_writer_writes_only_successful_models(tmp_path):
             {"alias": "gpt-5", "status": "pass", "gateway_model": "openai/gpt-5"},
             {"alias": "gemini-pro", "status": "pass", "gateway_model": "google-ai-studio/gemini-2.5-pro"},
             {"alias": "gemini-flash", "status": "pass", "gateway_model": "google-ai-studio/gemini-2.5-flash"},
-            {"alias": "claude-sonnet", "status": "error", "gateway_model": "anthropic/claude-4-sonnet-20250522"},
-            {"alias": "claude-haiku", "status": "pass", "gateway_model": "anthropic/claude-4.5-haiku-20251001"},
-            {"alias": "gpt-4o-realtime", "status": "error", "gateway_model": "openai/gpt-4o-realtime"},
+            {"alias": "claude-sonnet", "status": "error", "gateway_model": "anthropic/claude-sonnet-4"},
+            {"alias": "claude-haiku", "status": "pass", "gateway_model": "anthropic/claude-haiku-4.5"},
+            {"alias": "gpt-4o-realtime", "status": "error", "gateway_model": "openai/chatgpt-4o-latest"},
         ],
     )
 
@@ -642,9 +710,9 @@ def test_discover_gateway_models_handles_policy_enforcement(monkeypatch):
 
 def test_candidate_registry_contains_expected_policy_repair_options():
     assert CANDIDATE_GATEWAY_MODELS["gpt-5"] == ["openai/gpt-5"]
-    assert "anthropic/claude-4-sonnet-20250522" in CANDIDATE_GATEWAY_MODELS["claude-sonnet"]
-    assert "anthropic/claude-4.5-haiku-20251001" in CANDIDATE_GATEWAY_MODELS["claude-haiku"]
-    assert "openai/gpt-4o-realtime" in CANDIDATE_GATEWAY_MODELS["gpt-4o-realtime"]
+    assert CANDIDATE_GATEWAY_MODELS["claude-sonnet"][0] == "anthropic/claude-sonnet-4"
+    assert CANDIDATE_GATEWAY_MODELS["claude-haiku"][0] == "anthropic/claude-haiku-4.5"
+    assert CANDIDATE_GATEWAY_MODELS["gpt-4o-realtime"][0] == "openai/chatgpt-4o-latest"
 
 
 def test_readme_includes_metrics_repair_and_artifact_commands():
@@ -655,9 +723,19 @@ def test_readme_includes_metrics_repair_and_artifact_commands():
     assert "docker build -t airs-hv-sandbox:dev src/airs_hv/sandbox/" in readme
     assert "| gpt-5 | openai/gpt-5 |" in readme
     assert "| gemini-pro | google-ai-studio/gemini-2.5-pro |" in readme
+    assert "| gemini-flash | google-ai-studio/gemini-2.5-flash |" in readme
+    assert "| claude-sonnet | anthropic/claude-sonnet-4 |" in readme
+    assert "| claude-haiku | anthropic/claude-haiku-4.5 |" in readme
+    assert "| gpt-4o-realtime | openai/chatgpt-4o-latest |" in readme
     assert "python run_pipeline.py --smoke-test --model gpt-5" in readme
     assert "python run_pipeline.py --smoke-test --model gemini-pro" in readme
+    assert "python run_pipeline.py --smoke-test --model claude-sonnet" in readme
+    assert "python run_pipeline.py --smoke-test --model claude-haiku" in readme
+    assert "python run_pipeline.py --smoke-test --model gpt-4o-realtime" in readme
     assert "python run_pipeline.py --model gpt-5 --input prompts.jsonl --save-code --output-dir outputs/gpt-5/" in readme
+    assert "--model claude-sonnet" in readme
+    assert "--model claude-haiku" in readme
+    assert "--model gpt-4o-realtime" in readme
     assert "python run_pipeline.py --probe-model-alias claude-sonnet" in readme
     assert "--save-raw-output" in readme
     assert "--max-completion-tokens 8192" in readme

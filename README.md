@@ -149,6 +149,34 @@ python run_pipeline.py \
   --results-dir results/
 ```
 
+## Generation Token Limits
+
+The pipeline uses model-specific default `max_completion_tokens` for generation. Defaults were increased modestly, by no more than 50%, to reduce truncated code while still asking models to produce concise Python.
+
+Current generation defaults:
+
+```text
+gpt-5: 12288
+gemini-pro: 6144
+gemini-flash: 6144
+claude-sonnet: 6144
+claude-haiku: 6144
+gpt-4o-realtime: 6144
+```
+
+Higher token limits can reduce truncation, but may increase latency and cost. You can still override the default:
+
+```bash
+python run_pipeline.py \
+  --model gpt-5 \
+  --input data/prompts.jsonl \
+  --save-code \
+  --output-dir outputs/ \
+  --run-failure-checks \
+  --results-dir results/ \
+  --max-completion-tokens 12288
+```
+
 ## Multiple Runs Per Prompt
 
 Repeated runs call the model independently for each prompt. This helps measure output instability and gives RHSR enough samples to detect recurrent hallucinations.

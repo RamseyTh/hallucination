@@ -37,7 +37,7 @@ from .api import (
     write_resolved_gateway_model_map,
 )
 from .base import GenerationTrace, ModelClient
-from .models import CANDIDATE_GATEWAY_MODELS, MODEL_ALIASES, MODEL_MAP, set_gateway_model
+from .models import CANDIDATE_GATEWAY_MODELS, MODEL_ALIAS_REDIRECTS, MODEL_ALIASES, MODEL_MAP, set_gateway_model
 
 __all__ = [
     "ConfigurationError",
@@ -51,6 +51,7 @@ __all__ = [
     "GenerationError",
     "GenerationTrace",
     "MODEL_ALIASES",
+    "MODEL_ALIAS_REDIRECTS",
     "MODEL_MAP",
     "ModelClient",
     "ProviderResponseError",

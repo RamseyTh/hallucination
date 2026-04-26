@@ -8,7 +8,7 @@ MODEL_ALIASES = {
         "supports_temperature": False,
         "supports_reasoning_effort": True,
         "default_reasoning_effort": "low",
-        "generation_max_completion_tokens": 8192,
+        "generation_max_completion_tokens": 12288,
         "smoke_max_completion_tokens": 256,
     },
     "gemini-pro": {
@@ -17,7 +17,7 @@ MODEL_ALIASES = {
         "verified": True,
         "supports_temperature": True,
         "supports_reasoning_effort": False,
-        "generation_max_completion_tokens": 4096,
+        "generation_max_completion_tokens": 6144,
         "smoke_max_completion_tokens": 256,
     },
     "gemini-flash": {
@@ -26,39 +26,44 @@ MODEL_ALIASES = {
         "verified": True,
         "supports_temperature": True,
         "supports_reasoning_effort": False,
-        "generation_max_completion_tokens": 4096,
+        "generation_max_completion_tokens": 6144,
         "smoke_max_completion_tokens": 256,
     },
     "claude-sonnet": {
-        "display_name": "Claude 4 Sonnet 20250522",
-        "gateway_model": "anthropic/claude-4-sonnet-20250522",
-        "verified": False,
+        "display_name": "Claude 4 Sonnet",
+        "gateway_model": "anthropic/claude-sonnet-4",
+        "verified": True,
         "supports_temperature": True,
         "supports_reasoning_effort": False,
-        "generation_max_completion_tokens": 4096,
+        "generation_max_completion_tokens": 6144,
         "smoke_max_completion_tokens": 256,
     },
     "claude-haiku": {
-        "display_name": "Claude 4.5 Haiku 20251001",
-        "gateway_model": "anthropic/claude-4.5-haiku-20251001",
-        "verified": False,
+        "display_name": "Claude 4.5 Haiku",
+        "gateway_model": "anthropic/claude-haiku-4.5",
+        "verified": True,
         "supports_temperature": True,
         "supports_reasoning_effort": False,
-        "generation_max_completion_tokens": 4096,
+        "generation_max_completion_tokens": 6144,
         "smoke_max_completion_tokens": 256,
     },
     "gpt-4o-realtime": {
-        "display_name": "GPT-4o Realtime",
-        "gateway_model": "openai/gpt-4o-realtime",
-        "verified": False,
+        "display_name": "ChatGPT 4o Latest",
+        "gateway_model": "openai/chatgpt-4o-latest",
+        "verified": True,
         "supports_temperature": True,
         "supports_reasoning_effort": False,
-        "generation_max_completion_tokens": 4096,
+        "generation_max_completion_tokens": 6144,
         "smoke_max_completion_tokens": 256,
     },
 }
 
 ALL_MODEL_ALIASES = tuple(MODEL_ALIASES.keys())
+
+MODEL_ALIAS_REDIRECTS = {
+    "gpt-4o": "gpt-4o-realtime",
+    "chatgpt-4o-latest": "gpt-4o-realtime",
+}
 
 CANDIDATE_GATEWAY_MODELS = {
     "gpt-5": [
@@ -71,18 +76,21 @@ CANDIDATE_GATEWAY_MODELS = {
         "google-ai-studio/gemini-2.5-flash",
     ],
     "claude-sonnet": [
+        "anthropic/claude-sonnet-4",
         "claude-4-sonnet-20250522",
         "anthropic/claude-4-sonnet-20250522",
         "anthropic/claude-sonnet-4-20250522",
         "bedrock/claude-4-sonnet-20250522",
     ],
     "claude-haiku": [
+        "anthropic/claude-haiku-4.5",
         "claude-4.5-haiku-20251001",
         "anthropic/claude-4.5-haiku-20251001",
         "anthropic/claude-haiku-4.5-20251001",
         "bedrock/claude-4.5-haiku-20251001",
     ],
     "gpt-4o-realtime": [
+        "openai/chatgpt-4o-latest",
         "gpt-4o-realtime",
         "openai/gpt-4o-realtime",
         "openai/gpt-4o",

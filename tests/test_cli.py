@@ -38,7 +38,7 @@ def test_smoke_test_all_prints_one_table_and_calls_once(monkeypatch, capsys):
         },
         {
             "alias": "claude-sonnet",
-            "gateway_model": "anthropic/claude-4-sonnet-20250522",
+            "gateway_model": "anthropic/claude-sonnet-4",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -47,7 +47,7 @@ def test_smoke_test_all_prints_one_table_and_calls_once(monkeypatch, capsys):
         },
         {
             "alias": "claude-haiku",
-            "gateway_model": "anthropic/claude-4.5-haiku-20251001",
+            "gateway_model": "anthropic/claude-haiku-4.5",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -56,7 +56,7 @@ def test_smoke_test_all_prints_one_table_and_calls_once(monkeypatch, capsys):
         },
         {
             "alias": "gpt-4o-realtime",
-            "gateway_model": "openai/gpt-4o-realtime",
+            "gateway_model": "openai/chatgpt-4o-latest",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -99,7 +99,7 @@ def test_smoke_test_all_with_failure_returns_nonzero(monkeypatch):
             },
             {
                 "alias": "claude-sonnet",
-                "gateway_model": "claude-4-sonnet-20250522",
+                "gateway_model": "anthropic/claude-sonnet-4",
                 "status": "error",
                 "response_preview": "",
                 "error": "MODEL_REQUIRED_FOR_POLICY_ENFORCEMENT",
@@ -144,7 +144,7 @@ def test_fix_model_map_writes_resolved_file(monkeypatch, capsys, tmp_path):
         },
         {
             "alias": "claude-sonnet",
-            "gateway_model": "anthropic/claude-4-sonnet-20250522",
+            "gateway_model": "anthropic/claude-sonnet-4",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -153,7 +153,7 @@ def test_fix_model_map_writes_resolved_file(monkeypatch, capsys, tmp_path):
         },
         {
             "alias": "claude-haiku",
-            "gateway_model": "anthropic/claude-4.5-haiku-20251001",
+            "gateway_model": "anthropic/claude-haiku-4.5",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -162,7 +162,7 @@ def test_fix_model_map_writes_resolved_file(monkeypatch, capsys, tmp_path):
         },
         {
             "alias": "gpt-4o-realtime",
-            "gateway_model": "openai/gpt-4o-realtime",
+            "gateway_model": "openai/chatgpt-4o-latest",
             "status": "pass",
             "response_preview": "OK",
             "error": "",
@@ -180,7 +180,7 @@ def test_fix_model_map_writes_resolved_file(monkeypatch, capsys, tmp_path):
     assert target.exists()
     written = json.loads(target.read_text(encoding="utf-8"))
     assert written["gpt-5"] == "openai/gpt-5"
-    assert written["claude-sonnet"] == "anthropic/claude-4-sonnet-20250522"
+    assert written["claude-sonnet"] == "anthropic/claude-sonnet-4"
     assert "Wrote resolved gateway model map" in output
 
 
@@ -190,7 +190,7 @@ def test_full_run_accepts_gateway_model_map_and_save_code(monkeypatch, tmp_path)
     output_dir = tmp_path / "out"
     model_map = tmp_path / "gateway_models.resolved.json"
     model_map.write_text(
-        json.dumps({"gpt-5": "openai/gpt-5", "claude-sonnet": "anthropic/claude-4-sonnet-20250522"}) + "\n",
+        json.dumps({"gpt-5": "openai/gpt-5", "claude-sonnet": "anthropic/claude-sonnet-4"}) + "\n",
         encoding="utf-8",
     )
     captured = {}
@@ -353,7 +353,7 @@ def test_probe_model_alias_uses_builtin_candidates(monkeypatch, capsys):
             "claude-sonnet": [
                 {
                     "alias": "claude-sonnet",
-                    "candidate_model": "claude-4-sonnet-20250522",
+                    "candidate_model": "anthropic/claude-sonnet-4",
                     "status": "model_required_for_policy",
                     "response_preview": "",
                     "error": "MODEL_REQUIRED_FOR_POLICY_ENFORCEMENT",
@@ -374,6 +374,6 @@ def test_probe_model_alias_uses_builtin_candidates(monkeypatch, capsys):
     output = capsys.readouterr().out
 
     assert exit_code == 0
-    assert captured["candidate_models"]["claude-sonnet"][0] == "claude-4-sonnet-20250522"
+    assert captured["candidate_models"]["claude-sonnet"][0] == "anthropic/claude-sonnet-4"
     assert "Alias: claude-sonnet" in output
     assert "upstream_provider_auth_error" in output

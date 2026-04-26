@@ -9,18 +9,21 @@
     "google-ai-studio/gemini-2.5-flash"
   ],
   "claude-sonnet": [
+    "anthropic/claude-sonnet-4",
     "claude-4-sonnet-20250522",
     "anthropic/claude-4-sonnet-20250522",
     "anthropic/claude-sonnet-4-20250522",
     "bedrock/claude-4-sonnet-20250522"
   ],
   "claude-haiku": [
+    "anthropic/claude-haiku-4.5",
     "claude-4.5-haiku-20251001",
     "anthropic/claude-4.5-haiku-20251001",
     "anthropic/claude-haiku-4.5-20251001",
     "bedrock/claude-4.5-haiku-20251001"
   ],
   "gpt-4o-realtime": [
+    "openai/chatgpt-4o-latest",
     "gpt-4o-realtime",
     "openai/gpt-4o-realtime",
     "openai/gpt-4o",
