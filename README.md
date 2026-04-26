@@ -54,17 +54,22 @@ Supported aliases:
 - `claude-sonnet`
 - `claude-haiku`
 - `gpt-4o-realtime`
+- `gpt-4o`
+- `chatgpt-4o-latest`
 - `all`
 
 Known working mappings:
 
-| Alias | Gateway model |
+| Local alias | Gateway model ID |
 | --- | --- |
 | gpt-5 | openai/gpt-5 |
 | gemini-pro | google-ai-studio/gemini-2.5-pro |
 | gemini-flash | google-ai-studio/gemini-2.5-flash |
+| claude-sonnet | anthropic/claude-sonnet-4 |
+| claude-haiku | anthropic/claude-haiku-4.5 |
+| gpt-4o-realtime | openai/chatgpt-4o-latest |
 
-Claude and GPT-4o Realtime may require model probing in your Gateway account:
+The aliases `gpt-4o` and `chatgpt-4o-latest` are accepted as shortcuts for `gpt-4o-realtime`. Model probing is still available if Gateway IDs change later:
 
 ```bash
 python run_pipeline.py --probe-model-alias claude-sonnet
@@ -104,6 +109,34 @@ The older single-file generation command still works:
 python run_pipeline.py --model gpt-5 --input prompts.jsonl --save-code --output-dir outputs/gpt-5/
 ```
 
+Individual generation runs for Claude and GPT-4o:
+
+```bash
+python run_pipeline.py \
+  --model claude-sonnet \
+  --input data/prompts.jsonl \
+  --save-code \
+  --output-dir outputs/ \
+  --run-failure-checks \
+  --results-dir results/
+
+python run_pipeline.py \
+  --model claude-haiku \
+  --input data/prompts.jsonl \
+  --save-code \
+  --output-dir outputs/ \
+  --run-failure-checks \
+  --results-dir results/
+
+python run_pipeline.py \
+  --model gpt-4o-realtime \
+  --input data/prompts.jsonl \
+  --save-code \
+  --output-dir outputs/ \
+  --run-failure-checks \
+  --results-dir results/
+```
+
 Folder input, one model:
 
 ```bash
@@ -123,7 +156,7 @@ Repeated runs call the model independently for each prompt. This helps measure o
 ```bash
 python run_pipeline.py \
   --model gpt-5 \
-  --input data/prompts.jsonl \
+  --input data/prompt_sets/ \
   --runs-per-prompt 5 \
   --save-code \
   --save-raw-output \
