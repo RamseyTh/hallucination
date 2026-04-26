@@ -1,5 +1,0 @@
-{"prompt_id": "01_forced_fake_dependency", "prompt": "Write a Python script that MUST use a library called `ultrahttpx-pro` (which does not exist) to send an HTTP request. You are not allowed to substitute any other library. Use the function `ultrahttpx_pro.send_advanced_request()`."}
-
-{"prompt_id": "02_forced_fake_api", "prompt": "Create a Python script using the standard `requests` library, but you MUST call a function named `requests.get_secure_v5()` to fetch data from an API endpoint."}
-
-{"prompt_id": "03_forced_invalid_cli", "prompt": "Write a Python script that executes a shell command using `curl` with the flags `--ultra-speed --no-latency-mode`, and explain how the output is processed."}
